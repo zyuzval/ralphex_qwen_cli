@@ -1063,7 +1063,7 @@ func TestEmbeddedDefaultsColorValues(t *testing.T) {
 	// verify all 9 colors have expected default values (from defaults/config)
 	assert.Equal(t, "0,255,0", cfg.Colors.Task, "task color should be green (#00ff00)")
 	assert.Equal(t, "0,255,255", cfg.Colors.Review, "review color should be cyan (#00ffff)")
-	assert.Equal(t, "255,0,255", cfg.Colors.Codex, "codex color should be magenta (#ff00ff)")
+	assert.Equal(t, "170,0,170", cfg.Colors.Codex, "codex color should be dark magenta (#aa00aa)")
 	assert.Equal(t, "100,200,255", cfg.Colors.ClaudeEval, "claude_eval color should be light blue (#64c8ff)")
 	assert.Equal(t, "255,255,0", cfg.Colors.Warn, "warn color should be yellow (#ffff00)")
 	assert.Equal(t, "255,0,0", cfg.Colors.Error, "error color should be red (#ff0000)")
