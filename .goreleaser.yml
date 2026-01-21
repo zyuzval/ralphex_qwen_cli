@@ -39,7 +39,7 @@ nfpms:
 brews:
   - repository:
       owner: umputun
-      name: homebrew-tap
+      name: homebrew-apps
     directory: Formula
     homepage: https://github.com/umputun/ralphex
     description: Autonomous plan execution with Claude Code
