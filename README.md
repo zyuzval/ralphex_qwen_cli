@@ -1,5 +1,9 @@
 # ralphex [![build](https://github.com/umputun/ralphex/actions/workflows/ci.yml/badge.svg)](https://github.com/umputun/ralphex/actions/workflows/ci.yml) [![Coverage Status](https://coveralls.io/repos/github/umputun/ralphex/badge.svg?branch=master)](https://coveralls.io/github/umputun/ralphex?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/umputun/ralphex)](https://goreportcard.com/report/github.com/umputun/ralphex)
 
+<p align="center">
+  <img src="assets/ralphex-icon-transparent.png" alt="ralphex logo" width="180">
+</p>
+
 ## Autonomous plan execution with Claude Code
 
 *ralphex is a standalone CLI tool that runs in your terminal from the root of a git repository. It orchestrates Claude Code to execute implementation plans autonomously - no IDE plugins or cloud services required, just Claude Code and a single binary.*
@@ -11,14 +15,14 @@ ralphex solves both problems. Each task executes in a fresh Claude Code session 
 <details>
 <summary>Task Execution Screenshot</summary>
 
-![ralphex tasks](ralphex-tasks.png)
+![ralphex tasks](assets/ralphex-tasks.png)
 
 </details>
 
 <details>
 <summary>Review Mode Screenshot</summary>
 
-![ralphex review](ralphex-review.png)
+![ralphex review](assets/ralphex-review.png)
 
 </details>
 
