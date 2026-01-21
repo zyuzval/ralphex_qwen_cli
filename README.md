@@ -1,16 +1,25 @@
-# ralphex
+# ralphex - Autonomous plan execution with Claude Code.
 
-[![build](https://github.com/umputun/ralphex/actions/workflows/ci.yml/badge.svg)](https://github.com/umputun/ralphex/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/umputun/ralphex/badge.svg?branch=master)](https://coveralls.io/github/umputun/ralphex?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/umputun/ralphex)](https://goreportcard.com/report/github.com/umputun/ralphex)
+[![build](https://github.com/umputun/ralphex/actions/workflows/ci.yml/badge.svg)](https://github.com/umputun/ralphex/actions/workflows/ci.yml) [![Coverage Status](https://coveralls.io/repos/github/umputun/ralphex/badge.svg?branch=master)](https://coveralls.io/github/umputun/ralphex?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/umputun/ralphex)](https://goreportcard.com/report/github.com/umputun/ralphex)
 
-Autonomous plan execution with Claude Code with automated reviews.
+Claude Code is powerful but interactive - it requires you to watch, approve, and guide each step. For complex features spanning multiple tasks, this means hours of babysitting. Worse, as context fills up during long sessions, the model's quality degrades - it starts making mistakes, forgetting earlier decisions, and producing worse code.
+
+ralphex solves both problems. Each task executes in a fresh Claude Code session with minimal context, keeping the model sharp throughout the entire plan. Write a plan with tasks and validation commands, start ralphex, and walk away. It will:
+- Execute each task via Claude Code
+- Run your tests and linters after each change
+- Commit working code automatically
+- Run multi-phase code reviews (Claude agents + external Codex)
+- Fix issues found during review
+- Move the completed plan to `completed/` when done
+
+Come back to find your feature implemented, reviewed, and committed - or check the progress log to see what it is doing.
 
 ## Features
 
+- **Zero setup** - works out of the box with sensible defaults, no configuration required
 - **Autonomous task execution** - executes plan tasks one at a time with automatic retry
 - **Multi-phase code review** - 5 agents → codex → 2 agents review pipeline
-- **Custom review agents** - configurable agents with `{{agent:name}}` template system
+- **Custom review agents** - configurable agents with `{{agent:name}}` template system and user defined prompts
 - **Automatic branch creation** - creates git branch from plan filename
 - **Plan completion tracking** - moves completed plans to `completed/` folder
 - **Automatic commits** - commits after each task and review fix
@@ -45,7 +54,8 @@ ralphex will create a branch, execute tasks, commit results, run multi-phase rev
 
 ralphex executes plans in four phases with automated code reviews.
 
-### Execution Flow
+<details>
+<summary>Execution Flow Diagram</summary>
 
 ```mermaid
 flowchart TD
@@ -81,6 +91,8 @@ flowchart TD
     S2 -->|No| Done[Move plan to completed/]
 ```
 
+</details>
+
 ### Phase 1: Task Execution
 
 1. Reads plan file and finds first incomplete task (`### Task N:` with `- [ ]` checkboxes)
@@ -105,11 +117,11 @@ Claude verifies findings, fixes confirmed issues, and commits.
 
 *These are the default agents. Customize via `~/.config/ralphex/agents/` and `prompts/review_first.txt`.*
 
-### Phase 3: Codex External Review
+### Phase 3: Codex External Review (optional)
 
 1. Runs codex (GPT-5.2) for independent code review
 2. Claude evaluates codex findings, fixes valid issues
-3. Iterates until codex finds no new issues
+3. Iterates until codex finds no open issues
 
 ### Phase 4: Second Code Review
 
@@ -156,7 +168,7 @@ ralphex --review docs/plans/feature.md
 ralphex --codex-only
 
 # with custom max iterations
-ralphex --max-iterations 100 docs/plans/feature.md
+ralphex --max-iterations=100 docs/plans/feature.md
 ```
 
 ### Options
@@ -171,7 +183,7 @@ ralphex --max-iterations 100 docs/plans/feature.md
 
 ## Plan File Format
 
-Plans are markdown files with task sections. Each task has checkboxes that ralphex marks complete.
+Plans are markdown files with task sections. Each task has checkboxes that claude marks complete.
 
 ```markdown
 # Plan: Add User Authentication
@@ -187,11 +199,13 @@ Add JWT-based authentication to the API.
 - [ ] Create JWT validation middleware
 - [ ] Add to router for protected routes
 - [ ] Add tests
+- [ ] Mark completed
 
 ### Task 2: Add login endpoint
 - [ ] Create /api/login handler
 - [ ] Return JWT on successful auth
 - [ ] Add tests
+- [ ] Mark completed
 ```
 
 **Requirements:**
