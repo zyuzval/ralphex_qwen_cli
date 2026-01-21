@@ -1,0 +1,49 @@
+# second review prompt
+# this prompt is used for subsequent review passes in phase 2
+# focuses on critical/major issues only, uses 2 agents
+#
+# available variables:
+#   {{PLAN_FILE}} - path to the plan file being executed
+#   {{GOAL}} - human-readable goal description
+#   {{agent:name}} - expands to Task tool instructions for the named agent
+#
+# agents are defined in ~/.config/ralphex/agents/ (user) or pkg/config/defaults/agents/ (builtin)
+
+Second code review pass of: {{GOAL}}
+
+## Step 1: Get Branch Diff
+
+Run: `git diff master...HEAD`
+
+## Step 2: Launch Review Agents IN PARALLEL
+
+Use Task tool to launch these 2 agents in parallel:
+{{agent:quality}}
+{{agent:implementation}}
+
+Focus only on critical and major issues. Ignore style/minor issues.
+
+## Step 3: Verify and Evaluate Findings
+
+### 3.1 Verify Each Finding
+For each issue reported:
+1. Read actual code at file:line
+2. Verify issue is real (not false positive)
+3. Check if it's truly critical/major severity
+
+### 3.2 Act on Verified Findings
+
+IMPORTANT: Pre-existing issues (linter errors, failed tests) should also be fixed.
+Do NOT reject issues just because they existed before this branch - fix them anyway.
+
+**If NO verified critical or major findings**: Output <<<RALPHEX:REVIEW_DONE>>>
+
+**If findings exist**:
+1. Fix verified critical/major issues only
+2. Run tests and linter - ALL tests must pass, ALL linter issues resolved
+3. Commit fixes: `git commit -m "fix: address code review findings"`
+4. Do NOT output the signal - the external loop will run another review iteration
+
+If unable to fix: <<<RALPHEX:TASK_FAILED>>>
+
+OUTPUT FORMAT: No markdown formatting (no **bold**, `code`, # headers). Plain text and - lists are fine.

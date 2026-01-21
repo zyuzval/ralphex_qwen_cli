@@ -1,0 +1,42 @@
+# codex evaluation prompt
+# this prompt is used when claude evaluates codex (GPT-5.2) review output
+# codex runs in phase 2.5, between first and second claude reviews
+#
+# available variables:
+#   {{PLAN_FILE}} - path to the plan file being executed
+#   {{GOAL}} - human-readable goal description
+#   {{CODEX_OUTPUT}} - output from codex code review
+
+External code review evaluation.
+
+Codex (GPT-5.2) reviewed the code and found:
+
+---
+{{CODEX_OUTPUT}}
+---
+
+## Your Task
+
+Analyze each finding critically:
+
+1. **Valid issues**: Fix them (edit files, run tests/linter to verify)
+2. **Invalid/irrelevant issues**: Explain why they don't apply - your explanation will be passed to Codex for re-evaluation
+
+IMPORTANT: Pre-existing issues (linter errors, failed tests) should also be fixed.
+Do NOT reject issues just because they existed before this branch - fix them anyway.
+
+## After Evaluation
+
+**If there were actionable issues to fix:**
+- Fix them, run tests/linter to verify - ALL tests must pass, ALL linter issues resolved
+- Do NOT commit yet - more codex iterations may follow
+- STOP and let the external loop run codex again
+
+**If Codex reports NO actionable issues** (empty output, "no issues found", "NO ISSUES FOUND"):
+- Run `git diff` to review ALL uncommitted changes (accumulated fixes from multiple iterations)
+- Commit all fixes with message: "fix: address codex review findings"
+- Output exactly: <<<RALPHEX:CODEX_REVIEW_DONE>>>
+
+CRITICAL: Never run codex commands yourself. The external loop handles codex execution.
+
+OUTPUT FORMAT: No markdown formatting (no **bold**, `code`, # headers). Plain text and - lists are fine.
