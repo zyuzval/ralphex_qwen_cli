@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gopkg.in/ini.v1"
@@ -59,6 +60,9 @@ type Config struct {
 
 	PlansDir string `json:"plans_dir"`
 
+	// output colors (RGB values as comma-separated strings)
+	Colors ColorConfig `json:"-"`
+
 	// prompts (loaded separately from files)
 	TaskPrompt         string `json:"-"`
 	ReviewFirstPrompt  string `json:"-"`
@@ -89,6 +93,10 @@ func Load(configDir string) (*Config, error) {
 		return nil, fmt.Errorf("load config: %w", err)
 	}
 
+	if err := c.loadColorsWithFallback(); err != nil {
+		return nil, fmt.Errorf("load colors fallback: %w", err)
+	}
+
 	if err := c.loadPrompts(); err != nil {
 		return nil, fmt.Errorf("load prompts: %w", err)
 	}
@@ -104,6 +112,20 @@ func Load(configDir string) (*Config, error) {
 type CustomAgent struct {
 	Name   string // filename without extension
 	Prompt string // contents of the agent file
+}
+
+// ColorConfig holds RGB values for output colors.
+// each field stores comma-separated RGB values (e.g., "255,0,0" for red).
+type ColorConfig struct {
+	Task       string // task execution phase
+	Review     string // review phase
+	Codex      string // codex external review
+	ClaudeEval string // claude evaluation of codex output
+	Warn       string // warning messages
+	Error      string // error messages
+	Signal     string // completion/failure signals
+	Timestamp  string // timestamp prefix
+	Info       string // informational messages
 }
 
 // DefaultsFS returns the embedded filesystem containing default config files.
@@ -148,6 +170,93 @@ func (c *Config) parseEmbeddedDefaults() error {
 		return fmt.Errorf("read embedded defaults: %w", err)
 	}
 	return c.parseConfigBytes(data)
+}
+
+// loadColorsWithFallback fills any missing color values from embedded defaults.
+// this ensures all ColorConfig fields are populated after config loading.
+func (c *Config) loadColorsWithFallback() error {
+	embedded, err := c.parseEmbeddedColors()
+	if err != nil {
+		return err
+	}
+
+	if c.Colors.Task == "" {
+		c.Colors.Task = embedded.Task
+	}
+	if c.Colors.Review == "" {
+		c.Colors.Review = embedded.Review
+	}
+	if c.Colors.Codex == "" {
+		c.Colors.Codex = embedded.Codex
+	}
+	if c.Colors.ClaudeEval == "" {
+		c.Colors.ClaudeEval = embedded.ClaudeEval
+	}
+	if c.Colors.Warn == "" {
+		c.Colors.Warn = embedded.Warn
+	}
+	if c.Colors.Error == "" {
+		c.Colors.Error = embedded.Error
+	}
+	if c.Colors.Signal == "" {
+		c.Colors.Signal = embedded.Signal
+	}
+	if c.Colors.Timestamp == "" {
+		c.Colors.Timestamp = embedded.Timestamp
+	}
+	if c.Colors.Info == "" {
+		c.Colors.Info = embedded.Info
+	}
+
+	return nil
+}
+
+// parseEmbeddedColors parses only the color config from embedded defaults.
+func (c *Config) parseEmbeddedColors() (ColorConfig, error) {
+	data, err := DefaultsFS().ReadFile("defaults/config")
+	if err != nil {
+		return ColorConfig{}, fmt.Errorf("read embedded defaults: %w", err)
+	}
+
+	cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, data)
+	if err != nil {
+		return ColorConfig{}, fmt.Errorf("parse embedded config: %w", err)
+	}
+
+	var colors ColorConfig
+	section := cfg.Section("")
+	colorKeys := []struct {
+		key   string
+		field *string
+	}{
+		{"color_task", &colors.Task},
+		{"color_review", &colors.Review},
+		{"color_codex", &colors.Codex},
+		{"color_claude_eval", &colors.ClaudeEval},
+		{"color_warn", &colors.Warn},
+		{"color_error", &colors.Error},
+		{"color_signal", &colors.Signal},
+		{"color_timestamp", &colors.Timestamp},
+		{"color_info", &colors.Info},
+	}
+
+	for _, ck := range colorKeys {
+		key, err := section.GetKey(ck.key)
+		if err != nil {
+			continue
+		}
+		hex := strings.TrimSpace(key.String())
+		if hex == "" {
+			continue
+		}
+		r, g, b, err := parseHexColor(hex)
+		if err != nil {
+			return ColorConfig{}, fmt.Errorf("invalid embedded %s: %w", ck.key, err)
+		}
+		*ck.field = fmt.Sprintf("%d,%d,%d", r, g, b)
+	}
+
+	return colors, nil
 }
 
 // installDefaults creates the config directory and installs default config files
@@ -269,7 +378,9 @@ func (c *Config) parseConfig(r io.Reader) error {
 
 // parseConfigBytes parses configuration from a byte slice into c.
 func (c *Config) parseConfigBytes(data []byte) error {
-	cfg, err := ini.Load(data)
+	// ignoreInlineComment: true is needed to allow # in values (e.g., color_task = #00ff00)
+	// without this, the # would be treated as an inline comment
+	cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, data)
 	if err != nil {
 		return fmt.Errorf("parse config: %w", err)
 	}
@@ -336,6 +447,49 @@ func (c *Config) parseConfigBytes(data []byte) error {
 	// paths
 	if key, err := section.GetKey("plans_dir"); err == nil {
 		c.PlansDir = key.String()
+	}
+
+	// colors - parse hex values and convert to RGB strings
+	if err := c.parseColors(section); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// parseColors parses color configuration from the INI section.
+// each color_* key is expected to have a hex value (e.g., #ff0000).
+// the parsed colors are stored as comma-separated RGB values (e.g., "255,0,0").
+func (c *Config) parseColors(section *ini.Section) error {
+	colorKeys := []struct {
+		key   string
+		field *string
+	}{
+		{"color_task", &c.Colors.Task},
+		{"color_review", &c.Colors.Review},
+		{"color_codex", &c.Colors.Codex},
+		{"color_claude_eval", &c.Colors.ClaudeEval},
+		{"color_warn", &c.Colors.Warn},
+		{"color_error", &c.Colors.Error},
+		{"color_signal", &c.Colors.Signal},
+		{"color_timestamp", &c.Colors.Timestamp},
+		{"color_info", &c.Colors.Info},
+	}
+
+	for _, ck := range colorKeys {
+		key, err := section.GetKey(ck.key)
+		if err != nil {
+			continue
+		}
+		hex := strings.TrimSpace(key.String())
+		if hex == "" {
+			return fmt.Errorf("invalid %s: empty value", ck.key)
+		}
+		r, g, b, err := parseHexColor(hex)
+		if err != nil {
+			return fmt.Errorf("invalid %s: %w", ck.key, err)
+		}
+		*ck.field = fmt.Sprintf("%d,%d,%d", r, g, b)
 	}
 
 	return nil
@@ -468,4 +622,27 @@ func (c *Config) loadAgentFile(path string) (string, error) {
 		return "", fmt.Errorf("read agent file %s: %w", path, err)
 	}
 	return strings.TrimSpace(stripComments(string(data))), nil
+}
+
+// parseHexColor parses a hex color string (e.g., "#ff0000") into RGB components.
+// returns an error if the format is invalid.
+func parseHexColor(hex string) (r, g, b int, err error) {
+	if hex == "" || hex[0] != '#' {
+		return 0, 0, 0, errors.New("hex color must start with #")
+	}
+	if len(hex) != 7 {
+		return 0, 0, 0, errors.New("hex color must be 7 characters (e.g., #ff0000)")
+	}
+
+	// parse the hex value
+	var val int64
+	val, err = strconv.ParseInt(hex[1:], 16, 32)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("invalid hex color %q: %w", hex, err)
+	}
+
+	r = int((val >> 16) & 0xFF)
+	g = int((val >> 8) & 0xFF)
+	b = int(val & 0xFF)
+	return r, g, b, nil
 }

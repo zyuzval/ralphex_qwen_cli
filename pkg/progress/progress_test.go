@@ -12,8 +12,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testColors returns a Colors instance for testing with valid RGB values.
+func testColors() *Colors {
+	return NewColors(ColorConfig{
+		Task:       "0,255,0",
+		Review:     "0,255,255",
+		Codex:      "255,0,255",
+		ClaudeEval: "100,200,255",
+		Warn:       "255,255,0",
+		Error:      "255,0,0",
+		Signal:     "255,100,100",
+		Timestamp:  "138,138,138",
+		Info:       "180,180,180",
+	})
+}
+
 func TestNewLogger(t *testing.T) {
 	tmpDir := t.TempDir()
+	colors := testColors()
 
 	tests := []struct {
 		name     string
@@ -35,7 +51,7 @@ func TestNewLogger(t *testing.T) {
 			require.NoError(t, os.Chdir(tmpDir))
 			defer func() { _ = os.Chdir(origDir) }()
 
-			l, err := NewLogger(tc.cfg)
+			l, err := NewLogger(tc.cfg, colors)
 			require.NoError(t, err)
 			defer l.Close()
 
@@ -56,7 +72,7 @@ func TestLogger_Print(t *testing.T) {
 	require.NoError(t, os.Chdir(tmpDir))
 	defer func() { _ = os.Chdir(origDir) }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true}, testColors())
 	require.NoError(t, err)
 	defer func() { _ = l.Close() }()
 
@@ -81,7 +97,7 @@ func TestLogger_PrintRaw(t *testing.T) {
 	require.NoError(t, os.Chdir(tmpDir))
 	defer func() { _ = os.Chdir(origDir) }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true}, testColors())
 	require.NoError(t, err)
 	defer func() { _ = l.Close() }()
 
@@ -102,7 +118,7 @@ func TestLogger_PrintAligned(t *testing.T) {
 	require.NoError(t, os.Chdir(tmpDir))
 	defer func() { _ = os.Chdir(origDir) }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true}, testColors())
 	require.NoError(t, err)
 	defer func() { _ = l.Close() }()
 
@@ -132,7 +148,7 @@ func TestLogger_PrintAligned_Empty(t *testing.T) {
 	require.NoError(t, os.Chdir(tmpDir))
 	defer func() { _ = os.Chdir(origDir) }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true}, testColors())
 	require.NoError(t, err)
 	defer func() { _ = l.Close() }()
 
@@ -150,7 +166,7 @@ func TestLogger_Error(t *testing.T) {
 	require.NoError(t, os.Chdir(tmpDir))
 	defer func() { _ = os.Chdir(origDir) }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true}, testColors())
 	require.NoError(t, err)
 	defer func() { _ = l.Close() }()
 
@@ -171,7 +187,7 @@ func TestLogger_Warn(t *testing.T) {
 	require.NoError(t, os.Chdir(tmpDir))
 	defer func() { _ = os.Chdir(origDir) }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true}, testColors())
 	require.NoError(t, err)
 	defer func() { _ = l.Close() }()
 
@@ -197,7 +213,7 @@ func TestLogger_SetPhase(t *testing.T) {
 	color.NoColor = false
 	defer func() { color.NoColor = origNoColor }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test"})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test"}, testColors())
 	require.NoError(t, err)
 	defer func() { _ = l.Close() }()
 
@@ -231,7 +247,7 @@ func TestLogger_ColorDisabled(t *testing.T) {
 	origNoColor := color.NoColor
 	defer func() { color.NoColor = origNoColor }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test", NoColor: true}, testColors())
 	require.NoError(t, err)
 	defer func() { _ = l.Close() }()
 
@@ -253,7 +269,7 @@ func TestLogger_Elapsed(t *testing.T) {
 	require.NoError(t, os.Chdir(tmpDir))
 	defer func() { _ = os.Chdir(origDir) }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test"})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test"}, testColors())
 	require.NoError(t, err)
 	defer l.Close()
 
@@ -268,7 +284,7 @@ func TestLogger_Close(t *testing.T) {
 	require.NoError(t, os.Chdir(tmpDir))
 	defer func() { _ = os.Chdir(origDir) }()
 
-	l, err := NewLogger(Config{Mode: "full", Branch: "test"})
+	l, err := NewLogger(Config{Mode: "full", Branch: "test"}, testColors())
 	require.NoError(t, err)
 
 	l.Print("some output")
@@ -451,4 +467,148 @@ func TestFormatListItem(t *testing.T) {
 			assert.Equal(t, tc.want, got)
 		})
 	}
+}
+
+func TestNewColors(t *testing.T) {
+	t.Run("creates colors from valid config", func(t *testing.T) {
+		cfg := ColorConfig{
+			Task:       "0,255,0",
+			Review:     "0,255,255",
+			Codex:      "255,0,255",
+			ClaudeEval: "100,200,255",
+			Warn:       "255,255,0",
+			Error:      "255,0,0",
+			Signal:     "255,100,100",
+			Timestamp:  "138,138,138",
+			Info:       "180,180,180",
+		}
+		colors := NewColors(cfg)
+		assert.NotNil(t, colors)
+		assert.NotNil(t, colors.Info())
+		assert.NotNil(t, colors.Warn())
+		assert.NotNil(t, colors.Error())
+		assert.NotNil(t, colors.Signal())
+		assert.NotNil(t, colors.Timestamp())
+		assert.NotNil(t, colors.ForPhase(PhaseTask))
+		assert.NotNil(t, colors.ForPhase(PhaseReview))
+		assert.NotNil(t, colors.ForPhase(PhaseCodex))
+		assert.NotNil(t, colors.ForPhase(PhaseClaudeEval))
+	})
+
+	t.Run("panics on invalid task color", func(t *testing.T) {
+		cfg := ColorConfig{
+			Task:       "invalid",
+			Review:     "0,255,255",
+			Codex:      "255,0,255",
+			ClaudeEval: "100,200,255",
+			Warn:       "255,255,0",
+			Error:      "255,0,0",
+			Signal:     "255,100,100",
+			Timestamp:  "138,138,138",
+			Info:       "180,180,180",
+		}
+		assert.Panics(t, func() { NewColors(cfg) })
+	})
+
+	t.Run("panics on empty color", func(t *testing.T) {
+		cfg := ColorConfig{
+			Task:       "",
+			Review:     "0,255,255",
+			Codex:      "255,0,255",
+			ClaudeEval: "100,200,255",
+			Warn:       "255,255,0",
+			Error:      "255,0,0",
+			Signal:     "255,100,100",
+			Timestamp:  "138,138,138",
+			Info:       "180,180,180",
+		}
+		assert.Panics(t, func() { NewColors(cfg) })
+	})
+}
+
+func TestColors_Methods(t *testing.T) {
+	colors := testColors()
+
+	t.Run("Info returns info color", func(t *testing.T) {
+		c := colors.Info()
+		assert.NotNil(t, c)
+	})
+
+	t.Run("Warn returns warn color", func(t *testing.T) {
+		c := colors.Warn()
+		assert.NotNil(t, c)
+	})
+
+	t.Run("Error returns error color", func(t *testing.T) {
+		c := colors.Error()
+		assert.NotNil(t, c)
+	})
+
+	t.Run("Signal returns signal color", func(t *testing.T) {
+		c := colors.Signal()
+		assert.NotNil(t, c)
+	})
+
+	t.Run("Timestamp returns timestamp color", func(t *testing.T) {
+		c := colors.Timestamp()
+		assert.NotNil(t, c)
+	})
+
+	t.Run("ForPhase returns phase colors", func(t *testing.T) {
+		assert.NotNil(t, colors.ForPhase(PhaseTask))
+		assert.NotNil(t, colors.ForPhase(PhaseReview))
+		assert.NotNil(t, colors.ForPhase(PhaseCodex))
+		assert.NotNil(t, colors.ForPhase(PhaseClaudeEval))
+	})
+}
+
+func TestParseColorOrPanic(t *testing.T) {
+	t.Run("valid colors", func(t *testing.T) {
+		tests := []struct {
+			name string
+			s    string
+		}{
+			{name: "red", s: "255,0,0"},
+			{name: "black", s: "0,0,0"},
+			{name: "white", s: "255,255,255"},
+			{name: "with spaces", s: " 100 , 150 , 200 "},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				assert.NotPanics(t, func() {
+					c := parseColorOrPanic(tc.s, "test")
+					assert.NotNil(t, c)
+				})
+			})
+		}
+	})
+
+	t.Run("invalid colors panic", func(t *testing.T) {
+		tests := []struct {
+			name string
+			s    string
+		}{
+			{name: "empty string", s: ""},
+			{name: "too few parts", s: "255,0"},
+			{name: "too many parts", s: "255,0,0,0"},
+			{name: "invalid r component", s: "abc,0,0"},
+			{name: "invalid g component", s: "0,abc,0"},
+			{name: "invalid b component", s: "0,0,abc"},
+			{name: "r out of range high", s: "256,0,0"},
+			{name: "g out of range high", s: "0,256,0"},
+			{name: "b out of range high", s: "0,0,256"},
+			{name: "r out of range negative", s: "-1,0,0"},
+			{name: "g out of range negative", s: "0,-1,0"},
+			{name: "b out of range negative", s: "0,0,-1"},
+			{name: "single value", s: "255"},
+			{name: "no delimiter", s: "255000"},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				assert.Panics(t, func() {
+					parseColorOrPanic(tc.s, "test")
+				})
+			})
+		}
+	})
 }
