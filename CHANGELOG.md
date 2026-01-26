@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.4.0 - 2026-01-26
+
+### Added
+
+- Interactive plan creation mode with `--plan` flag (#22)
+- Web dashboard with real-time streaming and multi-session support (#17)
+- Improved uncommitted changes handling (#24)
+- Graceful prompt variable handling (#16)
+
+### Fixed
+
+- Windows build regression from web dashboard (#30)
+- Scanner buffer increased from 16MB to 64MB for large outputs
+- Better error message for repositories without commits
+- Auto-disable codex when binary not installed (#23)
+- Kill entire process group on context cancellation (#21)
+- Web dashboard improvements and signal handling (#29)
+
 ## v0.3.0 - 2026-01-23
 
 ### Added
