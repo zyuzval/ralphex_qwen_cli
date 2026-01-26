@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.1 - 2026-01-26
+
+### Added
+
+- Auto-plan-mode detection: running `ralphex` without arguments on master/main prompts for plan creation if no plans exist (#33)
+
 ## v0.4.0 - 2026-01-26
 
 ### Added
