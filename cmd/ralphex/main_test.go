@@ -465,6 +465,25 @@ func TestSelectPlanWithFzf(t *testing.T) {
 		assert.Contains(t, err.Error(), "directory missing")
 	})
 
+	t.Run("returns_actual_error_for_permission_denied", func(t *testing.T) {
+		if os.Getuid() == 0 {
+			t.Skip("test requires non-root user")
+		}
+
+		// create parent directory with no permissions
+		parentDir := t.TempDir()
+		restrictedDir := filepath.Join(parentDir, "noaccess")
+		require.NoError(t, os.Mkdir(restrictedDir, 0o000))
+		t.Cleanup(func() { _ = os.Chmod(restrictedDir, 0o755) }) //nolint:gosec // restore for cleanup
+
+		// try to access subdirectory inside restricted parent - this gives EACCES
+		plansDir := filepath.Join(restrictedDir, "plans")
+		_, err := selectPlanWithFzf(context.Background(), plansDir, colors)
+		require.Error(t, err)
+		require.NotErrorIs(t, err, errNoPlansFound, "permission error should NOT return errNoPlansFound")
+		assert.ErrorContains(t, err, "cannot access plans directory")
+	})
+
 	t.Run("returns_sentinel_error_when_no_plans", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		_, err := selectPlanWithFzf(context.Background(), tmpDir, colors)

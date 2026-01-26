@@ -473,7 +473,10 @@ func selectPlan(ctx context.Context, sel planSelector) (string, error) {
 
 func selectPlanWithFzf(ctx context.Context, plansDir string, colors *progress.Colors) (string, error) {
 	if _, err := os.Stat(plansDir); err != nil {
-		return "", fmt.Errorf("%w: %s (directory missing)", errNoPlansFound, plansDir)
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("%w: %s (directory missing)", errNoPlansFound, plansDir)
+		}
+		return "", fmt.Errorf("cannot access plans directory %s: %w", plansDir, err)
 	}
 
 	// find plan files (excluding completed/)
