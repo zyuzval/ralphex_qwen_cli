@@ -27,7 +27,17 @@ type CodexRunner interface {
 type execCodexRunner struct{}
 
 func (r *execCodexRunner) Run(ctx context.Context, name string, args ...string) (CodexStreams, func() error, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
+	// check context before starting to avoid spawning a process that will be immediately killed
+	if err := ctx.Err(); err != nil {
+		return CodexStreams{}, nil, fmt.Errorf("context already canceled: %w", err)
+	}
+
+	// use exec.Command (not CommandContext) because we handle cancellation ourselves
+	// to ensure the entire process group is killed, not just the direct child
+	cmd := exec.Command(name, args...) //nolint:noctx // intentional: we handle context cancellation via process group kill
+
+	// create new process group so we can kill all descendants on cleanup
+	setupProcessGroup(cmd)
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
@@ -43,7 +53,10 @@ func (r *execCodexRunner) Run(ctx context.Context, name string, args ...string) 
 		return CodexStreams{}, nil, fmt.Errorf("start command: %w", err)
 	}
 
-	return CodexStreams{Stderr: stderr, Stdout: stdout}, cmd.Wait, nil
+	// setup process group cleanup with graceful shutdown on context cancellation
+	cleanup := newProcessGroupCleanup(cmd, ctx.Done())
+
+	return CodexStreams{Stderr: stderr, Stdout: stdout}, cleanup.Wait, nil
 }
 
 // CodexExecutor runs codex CLI commands and filters output.
