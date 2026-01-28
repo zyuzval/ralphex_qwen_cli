@@ -80,6 +80,7 @@
 
         html {
             scroll-behavior: smooth;
+            overflow-x: hidden;
         }
 
         body {
@@ -191,6 +192,7 @@
             text-align: center;
             padding: 8rem 2rem 4rem;
             position: relative;
+            overflow: hidden;
         }
 
         .hero-glow {
@@ -351,6 +353,7 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.85rem;
             line-height: 1.8;
+            overflow-x: auto;
         }
 
         .terminal-line {
@@ -358,6 +361,12 @@
             gap: 0.5rem;
             opacity: 0;
             animation: terminalType 0.3s ease-out forwards;
+            min-width: 0;
+        }
+
+        .terminal-line > span {
+            min-width: 0;
+            flex-shrink: 1;
         }
 
         .terminal-line:nth-child(1) { animation-delay: 0.6s; }
@@ -903,6 +912,27 @@
 
             .agent-name {
                 width: auto;
+            }
+
+            .terminal-body {
+                font-size: 0.7rem;
+                padding: 1rem;
+            }
+
+            .time {
+                min-width: 60px;
+            }
+
+            .phase {
+                min-width: 55px;
+            }
+
+            .planning-body {
+                font-size: 0.65rem;
+            }
+
+            .config-structure pre {
+                font-size: 0.65rem;
             }
         }
 
