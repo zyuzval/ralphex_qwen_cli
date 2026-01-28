@@ -252,7 +252,7 @@ func TestDefaultsInstaller_installDefaultFiles_Prompts(t *testing.T) {
 	installer := &defaultsInstaller{embedFS: defaultsFS}
 	require.NoError(t, installer.installDefaultFiles(promptsDir, "defaults/prompts", "prompt"))
 
-	expectedPrompts := []string{"task.txt", "review_first.txt", "review_second.txt", "codex.txt"}
+	expectedPrompts := []string{"task.txt", "review_first.txt", "review_second.txt", "codex.txt", "make_plan.txt"}
 	for _, prompt := range expectedPrompts {
 		promptPath := filepath.Join(promptsDir, prompt)
 		assert.FileExists(t, promptPath, "prompt file %s should be installed", prompt)
@@ -294,7 +294,7 @@ func TestDefaultsInstaller_Install_InstallsPromptFiles(t *testing.T) {
 	require.NoError(t, installer.Install(configDir))
 
 	promptsDir := filepath.Join(configDir, "prompts")
-	expectedPrompts := []string{"task.txt", "review_first.txt", "review_second.txt", "codex.txt"}
+	expectedPrompts := []string{"task.txt", "review_first.txt", "review_second.txt", "codex.txt", "make_plan.txt"}
 
 	for _, prompt := range expectedPrompts {
 		promptPath := filepath.Join(promptsDir, prompt)
