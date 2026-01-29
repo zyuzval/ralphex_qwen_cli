@@ -13,6 +13,39 @@ import (
 	"strings"
 )
 
+// ReadLineResult holds the result of reading a line
+type readLineResult struct {
+	line string
+	err  error
+}
+
+// ReadLineWithContext reads a line from reader with context cancellation support.
+// returns the line (including newline), error, or context error if canceled.
+// this allows Ctrl+C (SIGINT) to interrupt blocking stdin reads.
+func ReadLineWithContext(ctx context.Context, reader *bufio.Reader) (string, error) {
+	resultCh := make(chan readLineResult, 1)
+
+	if err := ctx.Err(); err != nil {
+		return "", fmt.Errorf("read line: %w", err)
+	}
+
+	if err := ctx.Err(); err != nil {
+		return "", fmt.Errorf("read line: %w", err)
+	}
+
+	go func() {
+		line, err := reader.ReadString('\n')
+		resultCh <- readLineResult{line: line, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return "", fmt.Errorf("read line: %w", ctx.Err())
+	case result := <-resultCh:
+		return result.line, result.err
+	}
+}
+
 //go:generate moq -out mocks/collector.go -pkg mocks -skip-ensure -fmt goimports . Collector
 
 // Collector provides interactive input collection for plan creation.
@@ -45,7 +78,7 @@ func (c *TerminalCollector) AskQuestion(ctx context.Context, question string, op
 	}
 
 	// fallback to numbered selection
-	return c.selectWithNumbers(question, options)
+	return c.selectWithNumbers(ctx, question, options)
 }
 
 // hasFzf checks if fzf is available in PATH.
@@ -81,7 +114,7 @@ func (c *TerminalCollector) selectWithFzf(ctx context.Context, question string, 
 }
 
 // selectWithNumbers presents numbered options for selection via stdin.
-func (c *TerminalCollector) selectWithNumbers(question string, options []string) (string, error) {
+func (c *TerminalCollector) selectWithNumbers(ctx context.Context, question string, options []string) (string, error) {
 	stdout := c.stdout
 	if stdout == nil {
 		stdout = os.Stdout
@@ -101,7 +134,7 @@ func (c *TerminalCollector) selectWithNumbers(question string, options []string)
 
 	// read selection
 	reader := bufio.NewReader(stdin)
-	line, err := reader.ReadString('\n')
+	line, err := ReadLineWithContext(ctx, reader)
 	if err != nil {
 		return "", fmt.Errorf("read input: %w", err)
 	}
@@ -121,18 +154,17 @@ func (c *TerminalCollector) selectWithNumbers(question string, options []string)
 }
 
 // AskYesNo prompts with [y/N] and returns true for yes.
-// defaults to no on EOF, empty input, or any read error.
-func AskYesNo(prompt string, stdin io.Reader, stdout io.Writer) bool {
+// defaults to no on EOF, empty input, context cancellation, or any read error.
+func AskYesNo(ctx context.Context, prompt string, stdin io.Reader, stdout io.Writer) bool {
 	fmt.Fprintf(stdout, "%s [y/N]: ", prompt)
-	scanner := bufio.NewScanner(stdin)
-	if !scanner.Scan() {
-		// EOF (Ctrl+D) or read error - print newline so subsequent output
-		// doesn't appear on the same line as the prompt, then default to "no"
+	reader := bufio.NewReader(stdin)
+	line, err := ReadLineWithContext(ctx, reader)
+	if err != nil {
+		// EOF (Ctrl+D), context canceled (Ctrl+C), or read error
+		// print newline so subsequent output doesn't appear on the same line
 		fmt.Fprintln(stdout)
-		// scanner.Err() returns nil on EOF, non-nil on actual read errors
-		// either way, we default to "no" as documented
 		return false
 	}
-	answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	answer := strings.TrimSpace(strings.ToLower(line))
 	return answer == "y" || answer == "yes"
 }
