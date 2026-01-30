@@ -33,6 +33,15 @@ version:
 	@echo "branch: $(BRANCH), hash: $(HASH), timestamp: $(TIMESTAMP)"
 	@echo "revision: $(REV)"
 
+e2e-setup:
+	go run github.com/playwright-community/playwright-go/cmd/playwright@latest install --with-deps chromium
+
+e2e:
+	go test -v -failfast -count=1 -timeout=5m -tags=e2e ./e2e/...
+
+e2e-ui:
+	E2E_HEADLESS=false go test -v -failfast -count=1 -timeout=10m -tags=e2e ./e2e/...
+
 e2e-prep: build
 	@./scripts/prep-toy-test.sh
 	@cp .bin/ralphex /tmp/ralphex-test/.bin/ralphex
@@ -81,4 +90,4 @@ prep_site:
 	# copy raw claude assets (not rendered by mkdocs)
 	rm -rf site/site/docs/assets/claude && cp -rv assets/claude site/site/docs/assets/
 
-.PHONY: all build test lint fmt race version e2e-prep e2e-review e2e-codex prep_site
+.PHONY: all build test lint fmt race version e2e-setup e2e e2e-ui e2e-prep e2e-review e2e-codex prep_site
