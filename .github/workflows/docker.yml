@@ -126,11 +126,14 @@ jobs:
         id: tags
         run: |
           branch="${{ github.event.workflow_run.head_branch }}"
-          if [[ "$branch" == v* ]]; then
-            echo "tag=${branch}" >> $GITHUB_OUTPUT
+          if [[ "$branch" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            # semver tag: v0.7.2 -> tags: 0.7.2, 0.7, latest
+            echo "tag=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" >> $GITHUB_OUTPUT
+            echo "minor=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}" >> $GITHUB_OUTPUT
             echo "latest=true" >> $GITHUB_OUTPUT
           else
             echo "tag=${branch}" >> $GITHUB_OUTPUT
+            echo "minor=" >> $GITHUB_OUTPUT
             echo "latest=false" >> $GITHUB_OUTPUT
           fi
 
@@ -138,6 +141,9 @@ jobs:
         working-directory: /tmp/digests
         run: |
           tags="-t ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.tags.outputs.tag }}"
+          if [ -n "${{ steps.tags.outputs.minor }}" ]; then
+            tags="$tags -t ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.tags.outputs.minor }}"
+          fi
           if [ "${{ steps.tags.outputs.latest }}" == "true" ]; then
             tags="$tags -t ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:latest"
           fi
@@ -251,11 +257,14 @@ jobs:
         id: tags
         run: |
           branch="${{ github.event.workflow_run.head_branch }}"
-          if [[ "$branch" == v* ]]; then
-            echo "tag=${branch}" >> $GITHUB_OUTPUT
+          if [[ "$branch" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            # semver tag: v0.7.2 -> tags: 0.7.2, 0.7, latest
+            echo "tag=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" >> $GITHUB_OUTPUT
+            echo "minor=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}" >> $GITHUB_OUTPUT
             echo "latest=true" >> $GITHUB_OUTPUT
           else
             echo "tag=${branch}" >> $GITHUB_OUTPUT
+            echo "minor=" >> $GITHUB_OUTPUT
             echo "latest=false" >> $GITHUB_OUTPUT
           fi
 
@@ -263,6 +272,9 @@ jobs:
         working-directory: /tmp/digests
         run: |
           tags="-t ${{ env.REGISTRY }}/${{ env.IMAGE_GO }}:${{ steps.tags.outputs.tag }}"
+          if [ -n "${{ steps.tags.outputs.minor }}" ]; then
+            tags="$tags -t ${{ env.REGISTRY }}/${{ env.IMAGE_GO }}:${{ steps.tags.outputs.minor }}"
+          fi
           if [ "${{ steps.tags.outputs.latest }}" == "true" ]; then
             tags="$tags -t ${{ env.REGISTRY }}/${{ env.IMAGE_GO }}:latest"
           fi

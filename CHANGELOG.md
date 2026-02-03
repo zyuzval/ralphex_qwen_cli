@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.3 - 2026-02-03
+
+### Fixed
+
+- Docker image tags now use semver format (0.7.3, 0.7, latest) without v prefix
+
 ## v0.7.2 - 2026-02-03
 
 ### Changed
