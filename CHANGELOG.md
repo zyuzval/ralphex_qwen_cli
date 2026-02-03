@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.1 - 2026-02-03
+
+### Changed
+
+- Split Docker into base and Go images with Python support
+
 ## v0.7.0 - 2026-02-02
 
 ### Added
