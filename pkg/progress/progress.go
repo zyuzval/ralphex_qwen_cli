@@ -466,6 +466,17 @@ func (l *Logger) LogDraftReview(action, feedback string) {
 	}
 }
 
+// LogDiffStats writes git diff stats to the progress file (file-only, no stdout).
+// format: [timestamp] DIFFSTATS: files=F additions=A deletions=D
+func (l *Logger) LogDiffStats(files, additions, deletions int) {
+	if l.file == nil || files <= 0 {
+		return
+	}
+	timestamp := time.Now().Format(timestampFormat)
+	l.writeFile("[%s] DIFFSTATS: files=%d additions=%d deletions=%d\n",
+		timestamp, files, additions, deletions)
+}
+
 // Elapsed returns formatted elapsed time since start.
 // for durations >= 1 hour, truncates to minutes (e.g. "1h23m"); otherwise to seconds (e.g. "5m30s").
 func (l *Logger) Elapsed() string {

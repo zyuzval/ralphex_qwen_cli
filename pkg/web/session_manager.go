@@ -99,8 +99,8 @@ func (m *SessionManager) DiscoverRecursive(root string) ([]string, error) {
 			return nil
 		}
 
-		// skip hidden directories
-		if d.IsDir() && strings.HasPrefix(d.Name(), ".") && path != root {
+		// skip directories that typically contain many subdirs and no progress files
+		if d.IsDir() && skipDirs[d.Name()] && path != root {
 			return filepath.SkipDir
 		}
 
@@ -421,7 +421,8 @@ func ParseProgressHeader(path string) (SessionMetadata, error) {
 		} else if val, found := strings.CutPrefix(line, "Mode: "); found {
 			meta.Mode = val
 		} else if val, found := strings.CutPrefix(line, "Started: "); found {
-			t, err := time.Parse("2006-01-02 15:04:05", val)
+			// header timestamps are written in local time without a zone offset
+			t, err := time.ParseInLocation("2006-01-02 15:04:05", val, time.Local)
 			if err == nil {
 				meta.StartTime = t
 			}
@@ -466,6 +467,9 @@ func (m *SessionManager) loadProgressFileIntoSession(path string, session *Sessi
 		case ParsedLineSkip:
 			continue
 		case ParsedLineSection:
+			if pendingSection != "" {
+				m.emitPendingSection(session, pendingSection, phase, time.Now())
+			}
 			phase = parsed.Phase
 			// defer emitting section until we see a timestamped event
 			pendingSection = parsed.Section
@@ -475,13 +479,19 @@ func (m *SessionManager) loadProgressFileIntoSession(path string, session *Sessi
 				m.emitPendingSection(session, pendingSection, phase, parsed.Timestamp)
 				pendingSection = ""
 			}
-			_ = session.Publish(Event{
+			event := Event{
 				Type:      parsed.EventType,
 				Phase:     phase,
 				Text:      parsed.Text,
 				Timestamp: parsed.Timestamp,
 				Signal:    parsed.Signal,
-			})
+			}
+			if event.Type == EventTypeOutput {
+				if stats, ok := parseDiffStats(event.Text); ok {
+					session.SetDiffStats(stats)
+				}
+			}
+			_ = session.Publish(event)
 		case ParsedLinePlain:
 			_ = session.Publish(Event{
 				Type:      EventTypeOutput,
@@ -490,6 +500,10 @@ func (m *SessionManager) loadProgressFileIntoSession(path string, session *Sessi
 				Timestamp: time.Now(),
 			})
 		}
+	}
+
+	if pendingSection != "" {
+		m.emitPendingSection(session, pendingSection, phase, time.Now())
 	}
 }
 
