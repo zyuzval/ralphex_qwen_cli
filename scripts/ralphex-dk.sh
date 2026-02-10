@@ -22,6 +22,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from types import FrameType
 from typing import Optional
 from urllib.request import urlopen
 
@@ -359,9 +360,9 @@ def run_docker(image: str, port: str, volumes: list[str], bind_port: bool, args:
 
     # defer SIGTERM during Popen+assignment to prevent race where handler sees _active_proc unset.
     # using a deferred handler instead of SIG_IGN so the signal is not lost.
-    _pending_sigterm: list[tuple[int, object]] = []
+    _pending_sigterm: list[tuple[int, "FrameType | None"]] = []
 
-    def _deferred_term(signum: int, frame: object) -> None:
+    def _deferred_term(signum: int, frame: "FrameType | None") -> None:
         _pending_sigterm.append((signum, frame))
 
     old_handler = signal.signal(signal.SIGTERM, _deferred_term)
@@ -635,12 +636,12 @@ def run_tests() -> None:
 
             # patch Timer to use a very short delay
             orig_timer = threading.Timer
-            threading.Timer = lambda delay, fn: orig_timer(0.05, fn)
+            threading.Timer = lambda delay, fn: orig_timer(0.05, fn)  # type: ignore[misc,assignment]
             try:
                 schedule_cleanup(p)
                 time.sleep(0.2)
             finally:
-                threading.Timer = orig_timer
+                threading.Timer = orig_timer  # type: ignore[misc]
             self.assertFalse(p.exists())
 
         def test_none_is_noop(self) -> None:
