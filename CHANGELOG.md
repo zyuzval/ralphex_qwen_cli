@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.3 - 2026-02-11
+
+### Fixed
+
+- Include stderr content in codex error messages for better diagnostics (#86)
+
 ## v0.10.2 - 2026-02-11
 
 ### Fixed
