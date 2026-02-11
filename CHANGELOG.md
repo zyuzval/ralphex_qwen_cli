@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.2 - 2026-02-11
+
+### Fixed
+
+- Fix Ctrl+C (SIGINT) handling for immediate response (#85)
+
 ## v0.10.1 - 2026-02-10
 
 ### Changed
