@@ -95,6 +95,22 @@ func TestRunner_replacePromptVariables_ReviewSecondPrompt(t *testing.T) {
 	})
 }
 
+func TestRunner_replacePromptVariables_NoAgentWarningsInEmbeddedPrompts(t *testing.T) {
+	// regression test for issue #98: comment lines in embedded prompts contained {{agent:name}}
+	// which triggered "agent not found" warnings after stripComments was removed in #90
+	appCfg := testAppConfig(t)
+	log := newMockLogger("")
+	r := &Runner{cfg: Config{PlanFile: "docs/plans/test.md", ProgressPath: "progress.txt", DefaultBranch: "main", AppConfig: appCfg}, log: log}
+
+	r.replacePromptVariables(appCfg.ReviewFirstPrompt)
+	r.replacePromptVariables(appCfg.ReviewSecondPrompt)
+
+	// verify no "not found" warnings were logged
+	for _, call := range log.PrintCalls() {
+		assert.NotContains(t, call.Format, "not found", "unexpected agent warning: %s", call.Format)
+	}
+}
+
 func TestRunner_buildCodexEvaluationPrompt(t *testing.T) {
 	findings := "Issue 1: Missing error check in foo.go:42"
 

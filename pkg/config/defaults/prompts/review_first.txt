@@ -7,7 +7,7 @@
 #   {{PROGRESS_FILE}} - path to the progress log (task execution + previous reviews)
 #   {{GOAL}} - human-readable goal description
 #   {{DEFAULT_BRANCH}} - default branch name (main, master, trunk, etc.)
-#   {{agent:name}} - expands to Task tool instructions for the named agent
+#   {{agent:<name>}} - expands to Task tool instructions for the named agent
 #
 # agents are defined in ~/.config/ralphex/agents/ (user) or pkg/config/defaults/agents/ (builtin)
 
