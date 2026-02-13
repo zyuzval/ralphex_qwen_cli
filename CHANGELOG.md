@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.11.0 - 2026-02-13
+
+### Added
+
+- `--config-dir` flag and `RALPHEX_CONFIG_DIR` env var for custom config directory (#100)
+
+### Fixed
+
+- Replace background+polling with foreground parallel agents in review prompts (#99)
+- Strengthen review signal handling in prompts (#95)
+- Escape agent reference example in prompt comments
+
 ## v0.10.5 - 2026-02-12
 
 ### Changed
