@@ -415,6 +415,7 @@ ralphex --serve --port 3000 docs/plans/feature.md
 | `-d, --debug` | Enable debug logging | false |
 | `--no-color` | Disable color output | false |
 | `--reset` | Interactively reset global config to embedded defaults | - |
+| `--dump-defaults` | Extract raw embedded defaults to specified directory | - |
 | `--config-dir` | Custom config directory (env: `RALPHEX_CONFIG_DIR`) | `~/.config/ralphex` |
 
 ## Plan File Format
@@ -520,6 +521,8 @@ The entire system is designed for customization - both task execution and review
 - Edit existing files to modify agent behavior
 - Add new `.txt` files to create custom agents
 - Run `ralphex --reset` to interactively restore defaults, or delete all files manually
+- Run `ralphex --dump-defaults <dir>` to extract raw defaults for comparison
+- Use the `/ralphex-update` Claude Code skill to smart-merge updated defaults into customized files
 - Alternatively, reference agents already installed in your Claude Code directly in prompt files (see example below)
 
 **Prompt files** (`~/.config/ralphex/prompts/`):
@@ -768,7 +771,7 @@ For full mode, start on master - ralphex creates a branch automatically from the
 
 **How do I restore default agents after customizing?**
 
-Run `ralphex --reset` to interactively reset global config. Select which components to reset (config, prompts, agents). Alternatively, delete all `.txt` files from `~/.config/ralphex/agents/` manually.
+Run `ralphex --reset` to interactively reset global config. Select which components to reset (config, prompts, agents). Alternatively, delete all `.txt` files from `~/.config/ralphex/agents/` manually. To smart-merge updated defaults into customized files (preserving your changes), use the `/ralphex-update` Claude Code skill or `ralphex --dump-defaults <dir>` to extract defaults for manual comparison.
 
 **How does local .ralphex/ config interact with global config?**
 
@@ -876,10 +879,11 @@ ralphex works standalone from the terminal. Optionally, you can add slash comman
 |---------|-------------|
 | `/ralphex` | Launch and monitor ralphex execution with interactive mode/plan selection |
 | `/ralphex-plan` | Create structured implementation plans with guided context gathering |
+| `/ralphex-update` | Smart-merge updated embedded defaults into customized prompts/agents |
 
 ### Installation
 
-The ralphex CLI is the primary interface. Claude Code skills (`/ralphex` and `/ralphex-plan`) are optional convenience commands.
+The ralphex CLI is the primary interface. Claude Code skills (`/ralphex`, `/ralphex-plan`, and `/ralphex-update`) are optional convenience commands.
 
 **Via Plugin Marketplace (Recommended)**
 
@@ -898,6 +902,7 @@ Benefits: Auto-updates when marketplace refreshes (at Claude Code startup).
 The slash command definitions are hosted at:
 - [`/ralphex`](https://ralphex.com/assets/claude/ralphex.md)
 - [`/ralphex-plan`](https://ralphex.com/assets/claude/ralphex-plan.md)
+- [`/ralphex-update`](https://ralphex.com/assets/claude/ralphex-update.md)
 
 To install, ask Claude Code to "install ralphex slash commands" or manually copy the files to `~/.claude/commands/`.
 
