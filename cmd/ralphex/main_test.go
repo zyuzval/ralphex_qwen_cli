@@ -368,14 +368,14 @@ func TestAutoPlanModeDetection(t *testing.T) {
 func TestCheckClaudeDep(t *testing.T) {
 	t.Run("uses_configured_command", func(t *testing.T) {
 		cfg := &config.Config{ClaudeCommand: "nonexistent-command-12345"}
-		err := checkClaudeDep(cfg)
+		err := checkMainExecutorDep(cfg)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "nonexistent-command-12345")
 	})
 
 	t.Run("falls_back_to_claude_when_empty", func(t *testing.T) {
 		cfg := &config.Config{ClaudeCommand: ""}
-		err := checkClaudeDep(cfg)
+		err := checkMainExecutorDep(cfg)
 		// may pass or fail depending on whether claude is installed
 		// but error message should reference "claude" not empty string
 		if err != nil {

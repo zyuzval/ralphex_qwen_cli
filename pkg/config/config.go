@@ -33,6 +33,7 @@ const (
 // *Set fields:
 //   - CodexEnabledSet: tracks if codex_enabled was explicitly set
 //   - CodexTimeoutMsSet: tracks if codex_timeout_ms was explicitly set
+//   - QwenEnabledSet: tracks if qwen_enabled was explicitly set
 //   - IterationDelayMsSet: tracks if iteration_delay_ms was explicitly set
 //   - TaskRetryCountSet: tracks if task_retry_count was explicitly set
 //   - FinalizeEnabledSet: tracks if finalize_enabled was explicitly set
@@ -48,6 +49,11 @@ type Config struct {
 	CodexTimeoutMs       int    `json:"codex_timeout_ms"`
 	CodexTimeoutMsSet    bool   `json:"-"` // tracks if codex_timeout_ms was explicitly set in config
 	CodexSandbox         string `json:"codex_sandbox"`
+
+	QwenEnabled    bool   `json:"qwen_enabled"`
+	QwenEnabledSet bool   `json:"-"` // tracks if qwen_enabled was explicitly set in config
+	QwenCommand    string `json:"qwen_command"`
+	QwenArgs       string `json:"qwen_args"`
 
 	ExternalReviewTool string `json:"external_review_tool"` // "codex", "custom", or "none"
 	CustomReviewScript string `json:"custom_review_script"` // path to custom review script
@@ -66,6 +72,7 @@ type Config struct {
 	// error patterns to detect in executor output (e.g., rate limit messages)
 	ClaudeErrorPatterns []string `json:"claude_error_patterns"`
 	CodexErrorPatterns  []string `json:"codex_error_patterns"`
+	QwenErrorPatterns   []string `json:"qwen_error_patterns"`
 
 	// notification parameters
 	NotifyParams notify.Params `json:"-"`
@@ -231,6 +238,10 @@ func loadConfigFromDirs(globalDir, localDir string) (*Config, error) {
 		CodexTimeoutMs:       values.CodexTimeoutMs,
 		CodexTimeoutMsSet:    values.CodexTimeoutMsSet,
 		CodexSandbox:         values.CodexSandbox,
+		QwenEnabled:          values.QwenEnabled,
+		QwenEnabledSet:       values.QwenEnabledSet,
+		QwenCommand:          values.QwenCommand,
+		QwenArgs:             values.QwenArgs,
 		ExternalReviewTool:   values.ExternalReviewTool,
 		CustomReviewScript:   values.CustomReviewScript,
 		IterationDelayMs:     values.IterationDelayMs,
@@ -243,6 +254,7 @@ func loadConfigFromDirs(globalDir, localDir string) (*Config, error) {
 		WatchDirs:            values.WatchDirs,
 		ClaudeErrorPatterns:  values.ClaudeErrorPatterns,
 		CodexErrorPatterns:   values.CodexErrorPatterns,
+		QwenErrorPatterns:    values.QwenErrorPatterns,
 		NotifyParams: notify.Params{
 			Channels:      values.NotifyChannels,
 			OnError:       values.NotifyOnError,

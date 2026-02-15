@@ -57,6 +57,30 @@ codex_timeout_ms = 3600000
 codex_sandbox = read-only
 
 # ------------------------------------------------------------------------------
+# qwen executor
+# ------------------------------------------------------------------------------
+
+# qwen_enabled: whether to use Qwen Code instead of Claude Code
+# set to true to enable Qwen for all execution phases
+# default: false
+# qwen_enabled = false
+
+# qwen_command: the command to run Qwen Code
+# default: "qwen"
+# qwen_command = qwen
+
+# qwen_args: arguments passed to Qwen command
+# --yolo: skip permissions (equivalent to Claude's --dangerously-skip-permissions)
+# --output-format stream-json: output JSON events for progress tracking
+# default: --yolo --output-format stream-json
+# qwen_args = --yolo --output-format stream-json
+
+# qwen_error_patterns: patterns to detect in Qwen output (comma-separated)
+# used to identify rate limits, quota issues, etc.
+# default: (empty)
+# qwen_error_patterns =
+
+# ------------------------------------------------------------------------------
 # external review
 # ------------------------------------------------------------------------------
 

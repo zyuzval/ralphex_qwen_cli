@@ -95,6 +95,7 @@ type Runner struct {
 	log            Logger
 	claude         Executor
 	codex          Executor
+	qwen           Executor
 	custom         *executor.CustomExecutor
 	git            GitChecker
 	inputCollector InputCollector
@@ -147,6 +148,24 @@ func New(cfg Config, log Logger, holder *status.PhaseHolder) *Runner {
 		}
 	}
 
+	// build qwen executor with config values
+	var qwenExec Executor
+	if cfg.AppConfig != nil && cfg.AppConfig.QwenEnabled {
+		qwenExec = &executor.QwenExecutor{
+			OutputHandler: func(text string) {
+				log.PrintAligned(text)
+			},
+			Debug: cfg.Debug,
+		}
+		if cfg.AppConfig.QwenCommand != "" {
+			qwenExec.(*executor.QwenExecutor).Command = cfg.AppConfig.QwenCommand
+		}
+		if cfg.AppConfig.QwenArgs != "" {
+			qwenExec.(*executor.QwenExecutor).Args = cfg.AppConfig.QwenArgs
+		}
+		qwenExec.(*executor.QwenExecutor).ErrorPatterns = cfg.AppConfig.QwenErrorPatterns
+	}
+
 	// auto-disable codex if the binary is not installed AND we need codex
 	// (skip this check if using custom external review tool or external review is disabled)
 	if cfg.CodexEnabled && needsCodexBinary(cfg.AppConfig) {
@@ -160,11 +179,11 @@ func New(cfg Config, log Logger, holder *status.PhaseHolder) *Runner {
 		}
 	}
 
-	return NewWithExecutors(cfg, log, claudeExec, codexExec, customExec, holder)
+	return NewWithExecutors(cfg, log, claudeExec, codexExec, qwenExec, customExec, holder)
 }
 
 // NewWithExecutors creates a new Runner with custom executors (for testing).
-func NewWithExecutors(cfg Config, log Logger, claude, codex Executor, custom *executor.CustomExecutor, holder *status.PhaseHolder) *Runner {
+func NewWithExecutors(cfg Config, log Logger, claude, codex, qwen Executor, custom *executor.CustomExecutor, holder *status.PhaseHolder) *Runner {
 	// determine iteration delay from config or default
 	iterDelay := DefaultIterationDelay
 	if cfg.IterationDelayMs > 0 {
@@ -185,6 +204,7 @@ func NewWithExecutors(cfg Config, log Logger, claude, codex Executor, custom *ex
 		log:            log,
 		claude:         claude,
 		codex:          codex,
+		qwen:           qwen,
 		custom:         custom,
 		phaseHolder:    holder,
 		iterationDelay: iterDelay,
@@ -200,6 +220,15 @@ func (r *Runner) SetInputCollector(c InputCollector) {
 // SetGitChecker sets the git checker for no-commit detection in review loops.
 func (r *Runner) SetGitChecker(g GitChecker) {
 	r.git = g
+}
+
+// getMainExecutor returns the appropriate executor based on configuration.
+// If Qwen is enabled, returns qwen executor; otherwise returns claude executor.
+func (r *Runner) getMainExecutor() Executor {
+	if r.cfg.AppConfig != nil && r.cfg.AppConfig.QwenEnabled && r.qwen != nil {
+		return r.qwen
+	}
+	return r.claude
 }
 
 // Run executes the main loop based on configured mode.
@@ -344,7 +373,7 @@ func (r *Runner) runTaskPhase(ctx context.Context) error {
 
 		r.log.PrintSection(status.NewTaskIterationSection(i))
 
-		result := r.claude.Run(ctx, prompt)
+		result := r.getMainExecutor().Run(ctx, prompt)
 		if result.Error != nil {
 			if err := r.handlePatternMatchError(result.Error, "claude"); err != nil {
 				return err
@@ -386,7 +415,7 @@ func (r *Runner) runTaskPhase(ctx context.Context) error {
 
 // runClaudeReview runs Claude review with the given prompt until REVIEW_DONE.
 func (r *Runner) runClaudeReview(ctx context.Context, prompt string) error {
-	result := r.claude.Run(ctx, prompt)
+	result := r.getMainExecutor().Run(ctx, prompt)
 	if result.Error != nil {
 		if err := r.handlePatternMatchError(result.Error, "claude"); err != nil {
 			return err
@@ -422,7 +451,7 @@ func (r *Runner) runClaudeReviewLoop(ctx context.Context) error {
 		// capture HEAD hash before running claude for no-commit detection
 		headBefore := r.headHash()
 
-		result := r.claude.Run(ctx, r.replacePromptVariables(r.cfg.AppConfig.ReviewSecondPrompt))
+		result := r.getMainExecutor().Run(ctx, r.replacePromptVariables(r.cfg.AppConfig.ReviewSecondPrompt))
 		if result.Error != nil {
 			if err := r.handlePatternMatchError(result.Error, "claude"); err != nil {
 				return err
@@ -571,7 +600,7 @@ func (r *Runner) runExternalReviewLoop(ctx context.Context, cfg externalReviewCo
 		// pass output to claude for evaluation and fixing
 		r.phaseHolder.Set(status.PhaseClaudeEval)
 		r.log.PrintSection(status.NewClaudeEvalSection())
-		claudeResult := r.claude.Run(ctx, cfg.buildEvalPrompt(reviewResult.Output))
+		claudeResult := r.getMainExecutor().Run(ctx, cfg.buildEvalPrompt(reviewResult.Output))
 
 		// restore codex phase for next iteration
 		r.phaseHolder.Set(status.PhaseCodex)
@@ -817,7 +846,7 @@ func (r *Runner) runPlanCreation(ctx context.Context) error {
 			lastRevisionFeedback = "" // clear after use
 		}
 
-		result := r.claude.Run(ctx, prompt)
+		result := r.getMainExecutor().Run(ctx, prompt)
 		if result.Error != nil {
 			if err := r.handlePatternMatchError(result.Error, "claude"); err != nil {
 				return err
@@ -893,7 +922,7 @@ func (r *Runner) runFinalize(ctx context.Context) error {
 	r.log.PrintSection(status.NewGenericSection("finalize step"))
 
 	prompt := r.replacePromptVariables(r.cfg.AppConfig.FinalizePrompt)
-	result := r.claude.Run(ctx, prompt)
+	result := r.getMainExecutor().Run(ctx, prompt)
 
 	if result.Error != nil {
 		// propagate context cancellation - user wants to abort

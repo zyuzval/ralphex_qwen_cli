@@ -26,16 +26,24 @@ type Values struct {
 	CodexTimeoutMsSet    bool // tracks if codex_timeout_ms was explicitly set
 	CodexSandbox         string
 	CodexErrorPatterns   []string // patterns to detect in codex output (e.g., rate limit messages)
-	ExternalReviewTool   string   // "codex", "custom", or "none"
-	CustomReviewScript   string   // path to custom review script (when ExternalReviewTool = "custom")
-	IterationDelayMs     int
-	IterationDelayMsSet  bool // tracks if iteration_delay_ms was explicitly set
-	TaskRetryCount       int
-	TaskRetryCountSet    bool // tracks if task_retry_count was explicitly set
-	FinalizeEnabled      bool
-	FinalizeEnabledSet   bool // tracks if finalize_enabled was explicitly set
-	PlansDir             string
-	WatchDirs            []string // directories to watch for progress files
+
+	// Qwen settings
+	QwenEnabled       bool     `json:"qwen_enabled"`
+	QwenEnabledSet    bool     `json:"-"` // tracks if qwen_enabled was explicitly set
+	QwenCommand       string   `json:"qwen_command"`
+	QwenArgs          string   `json:"qwen_args"`
+	QwenErrorPatterns []string `json:"qwen_error_patterns"` // patterns to detect in qwen output
+
+	ExternalReviewTool  string // "codex", "custom", or "none"
+	CustomReviewScript  string // path to custom review script (when ExternalReviewTool = "custom")
+	IterationDelayMs    int
+	IterationDelayMsSet bool // tracks if iteration_delay_ms was explicitly set
+	TaskRetryCount      int
+	TaskRetryCountSet   bool // tracks if task_retry_count was explicitly set
+	FinalizeEnabled     bool
+	FinalizeEnabledSet  bool // tracks if finalize_enabled was explicitly set
+	PlansDir            string
+	WatchDirs           []string // directories to watch for progress files
 
 	// notification settings
 	NotifyChannels        []string // channels to use: telegram, email, webhook, slack, custom
@@ -195,6 +203,32 @@ func (vl *valuesLoader) parseValuesFromBytes(data []byte) (Values, error) {
 		values.CodexSandbox = key.String()
 	}
 
+	// qwen settings
+	if key, err := section.GetKey("qwen_enabled"); err == nil {
+		val, boolErr := key.Bool()
+		if boolErr != nil {
+			return Values{}, fmt.Errorf("invalid qwen_enabled: %w", boolErr)
+		}
+		values.QwenEnabled = val
+		values.QwenEnabledSet = true
+	}
+	if key, err := section.GetKey("qwen_command"); err == nil {
+		values.QwenCommand = key.String()
+	}
+	if key, err := section.GetKey("qwen_args"); err == nil {
+		values.QwenArgs = key.String()
+	}
+	if key, err := section.GetKey("qwen_error_patterns"); err == nil {
+		val := strings.TrimSpace(key.String())
+		if val != "" {
+			for p := range strings.SplitSeq(val, ",") {
+				if t := strings.TrimSpace(p); t != "" {
+					values.QwenErrorPatterns = append(values.QwenErrorPatterns, t)
+				}
+			}
+		}
+	}
+
 	// external review settings
 	if key, err := section.GetKey("external_review_tool"); err == nil {
 		values.ExternalReviewTool = key.String()
@@ -311,6 +345,19 @@ func (dst *Values) mergeFrom(src *Values) {
 	}
 	if src.CodexSandbox != "" {
 		dst.CodexSandbox = src.CodexSandbox
+	}
+	if src.QwenEnabledSet {
+		dst.QwenEnabled = src.QwenEnabled
+		dst.QwenEnabledSet = true
+	}
+	if src.QwenCommand != "" {
+		dst.QwenCommand = src.QwenCommand
+	}
+	if src.QwenArgs != "" {
+		dst.QwenArgs = src.QwenArgs
+	}
+	if len(src.QwenErrorPatterns) > 0 {
+		dst.QwenErrorPatterns = src.QwenErrorPatterns
 	}
 	if src.ExternalReviewTool != "" {
 		dst.ExternalReviewTool = src.ExternalReviewTool

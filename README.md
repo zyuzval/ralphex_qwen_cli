@@ -52,6 +52,7 @@ ralphex solves both problems. Each task executes in a fresh Claude Code session 
 - **Docker support** - run in isolated container for safer autonomous execution
 - **Notifications** - optional alerts on completion/failure via Telegram, Email, Slack, Webhook, or custom script
 - **Multiple modes** - full execution, tasks-only, review-only, external-only, or plan creation
+- **Qwen Code support** - use Qwen Code as an alternative to Claude Code (native integration or wrapper script)
 
 ## Quick Start
 
@@ -825,6 +826,58 @@ CLAUDE_CONFIG_DIR=~/.claude2 ralphex docs/plans/feature.md
 ```
 
 This is the same env var Claude Code itself uses. With Docker, the wrapper script mounts the specified directory and derives the correct macOS Keychain service name from the path. Without Docker, the env var passes through to the child Claude Code process directly. Each Claude installation stores credentials under a unique Keychain entry based on its config directory. No additional configuration is needed — just point `CLAUDE_CONFIG_DIR` to the right directory.
+
+## Qwen Code Support
+
+ralphex supports [Qwen Code](https://qwen.com/code) as an alternative to Claude Code. You can use Qwen in two ways:
+
+### Native Integration (Recommended)
+
+Enable Qwen directly in your config (`~/.config/ralphex/config`):
+
+```ini
+# Enable Qwen instead of Claude
+qwen_enabled = true
+
+# Command to run Qwen CLI (if not in PATH, specify full path)
+qwen_command = qwen
+
+# Arguments for Qwen CLI
+qwen_args = --yolo --output-format stream-json
+
+# Optional: error patterns to detect in Qwen output
+qwen_error_patterns = rate limit,quota exceeded
+```
+
+When `qwen_enabled` is true, ralphex uses Qwen for all execution phases (tasks, reviews, plan creation). Qwen supports the same signal system (`<<<RALPHEX:...>>>`) and streaming JSON format as Claude Code.
+
+### Wrapper Script (Compatibility Mode)
+
+Alternatively, use the provided wrapper script to run Qwen through the Claude interface:
+
+```ini
+# Use wrapper script as Claude command
+claude_command = ./scripts/qwen-wrapper.sh
+claude_args = --yolo --output-format stream-json
+
+# Qwen settings for the wrapper
+qwen_enabled = false
+qwen_command = qwen
+qwen_args = --yolo --output-format stream-json
+```
+
+The wrapper (`scripts/qwen-wrapper.sh`) translates Claude-style arguments to Qwen and converts output to Claude-compatible streaming JSON. This mode is useful if you want to keep Claude as the primary executor but test Qwen compatibility.
+
+### Comparison
+
+| Feature | Native Integration | Wrapper Script |
+|---------|-------------------|----------------|
+| Performance | Direct (no translation) | Additional conversion layer |
+| Compatibility | Full Qwen features | Limited to Claude-compatible features |
+| Flexibility | Qwen-specific options | Claude command interface |
+| Use case | Production with Qwen | Testing/migration |
+
+**Note:** Qwen Code must be installed separately and available in your PATH (or specify full path in `qwen_command`). The wrapper script requires `bash` and standard Unix utilities (sed, etc.). On Windows, use WSL or Git Bash.
 
 **Can I run something after all phases complete (notifications, rebase commits, etc.)?**
 

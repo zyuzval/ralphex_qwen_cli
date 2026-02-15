@@ -178,8 +178,8 @@ func run(ctx context.Context, o opts) error {
 		return runWatchOnly(ctx, o, cfg, colors)
 	}
 
-	// check dependencies using configured command (or default "claude")
-	if depErr := checkClaudeDep(cfg); depErr != nil {
+	// check dependencies using configured command (or default "claude" or "qwen")
+	if depErr := checkMainExecutorDep(cfg); depErr != nil {
 		return depErr
 	}
 
@@ -426,8 +426,20 @@ func openGitService(colors *progress.Colors) (*git.Service, error) {
 	return svc, nil
 }
 
-// checkClaudeDep checks that the claude command is available in PATH.
-func checkClaudeDep(cfg *config.Config) error {
+// checkMainExecutorDep checks that the main executor command (Claude or Qwen) is available in PATH.
+func checkMainExecutorDep(cfg *config.Config) error {
+	if cfg.QwenEnabled {
+		// Check Qwen command
+		qwenCmd := cfg.QwenCommand
+		if qwenCmd == "" {
+			qwenCmd = "qwen"
+		}
+		if _, err := exec.LookPath(qwenCmd); err != nil {
+			return fmt.Errorf("%s not found in PATH", qwenCmd)
+		}
+		return nil
+	}
+	// Check Claude command (default)
 	claudeCmd := cfg.ClaudeCommand
 	if claudeCmd == "" {
 		claudeCmd = "claude"

@@ -6,6 +6,7 @@
 *.dylib
 .bin/
 /ralphex
+-p/
 
 # test files
 *.test
@@ -40,7 +41,7 @@ dist/
 __debug_bin*
 
 # ralphex progress logs
-.ralphex/progress/
+.ralphex/
 **/progress.txt
 **/progress-*.txt
 !e2e/testdata/progress-test.txt
