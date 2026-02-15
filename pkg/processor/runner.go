@@ -226,8 +226,10 @@ func (r *Runner) SetGitChecker(g GitChecker) {
 // If Qwen is enabled, returns qwen executor; otherwise returns claude executor.
 func (r *Runner) getMainExecutor() Executor {
 	if r.cfg.AppConfig != nil && r.cfg.AppConfig.QwenEnabled && r.qwen != nil {
+		r.log.Print("using Qwen executor for task execution")
 		return r.qwen
 	}
+	r.log.Print("using Claude executor for task execution")
 	return r.claude
 }
 

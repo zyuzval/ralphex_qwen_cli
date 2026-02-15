@@ -217,6 +217,10 @@ func (vl *valuesLoader) parseValuesFromBytes(data []byte) (Values, error) {
 	}
 	if key, err := section.GetKey("qwen_args"); err == nil {
 		values.QwenArgs = key.String()
+		// Validate qwen_args contains required --output-format stream-json for streaming JSON parsing
+		if values.QwenArgs != "" && !strings.Contains(values.QwenArgs, "--output-format") {
+			return Values{}, fmt.Errorf("qwen_args must include --output-format flag (e.g., '--output-format stream-json')")
+		}
 	}
 	if key, err := section.GetKey("qwen_error_patterns"); err == nil {
 		val := strings.TrimSpace(key.String())
