@@ -87,6 +87,10 @@
 - **#decision** Web dashboard: свой с нуля или адаптация ralphex? — решает: человек
 - **#review** AI предлагает: Добавить Pre-commit hooks для mypy/black — рассмотреть на неделе 3
 - **#bug** Потенциальная проблема: Windows совместимость subprocess для git — нужно тестировать
+- **#architecture Гибридное ревью (2+3)** — Требуется уточнение: почему не все 5 параллельно как в ralphex? Qwen CLI не поддерживает Task tool? **Решение:** Добавить исследование в FEAT-002
+- **#architecture Agentic RAG термин** — Термин "RAG" может путать (нет semantic search/vector DB). Рассмотреть переименование в "ReAct pattern" или "Task loop with validation" **Решение:** Обновить ARCHITECTURE.md с пояснением
+- **#architecture MCP в одном процессе** — Риск: если Qwen CLI зависнет, упадёт MCP сервер. Пометить как technical debt для v0.2 **Решение:** Добавить в docs/DECISIONS.md
+- **#feat FEAT-001 Qwen CLI интерфейс** — Нужно явно описать: subprocess с каким интерфейсом? (stream-json, --yolo?) **Решение:** Уточнить в FEAT-001
 
 ---
 

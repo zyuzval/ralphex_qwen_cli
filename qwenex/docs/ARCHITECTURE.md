@@ -18,17 +18,19 @@
 
 **Qwenex** — это оркестратор для автономного выполнения планов разработки через Qwen CLI с системой спецификаций (BOOT/WAL/FEAT/PROP) и MCP-инструментами.
 
-### Архитектурный паттерн: Agentic RAG
+### Архитектурный паттерн: Task Loop with Validation
 
-Qwenex использует паттерн **Agentic RAG** (Retrieval-Augmented Generation с агентным поведением) из `docs/RAG.txt`:
+Qwenex использует паттерн **Task Loop with Validation** (также известный как ReAct pattern) из `docs/RAG.txt`:
+
+**Примечание:** Термин "Agentic RAG" использовался в ранних версиях, но был заменён на "Task Loop with Validation" для избежания путаницы с semantic search / vector DB. См. ADR-015.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Agentic RAG Паттерн                           │
+│              Task Loop with Validation Паттерн                   │
 │                                                                   │
-│  User Query → Analyse → [Retrieve via MCP] → Rerank → Generate  │
-│       ↑                                              │           │
-│       └────────────── Self-correction ───────────────┘           │
+│  Plan → Analyse → [Execute via MCP] → Aggregate → Generate     │
+│   ↑                                                  │           │
+│   └────────────── Fix Loop (max 3) ──────────────────┘           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -42,16 +44,16 @@ Plan → Analyse Task → [Qwen CLI + MCP] → Aggregate Review → Generate Cod
 
 **Соответствие компонентов:**
 
-| RAG.txt | Qwenex | Назначение |
-|---------|--------|------------|
-| **User Query** | Plan (FEAT/PROP) | Входные данные |
-| **Analyse Query** | Analyse Task | Решение: нужен ли контекст? |
-| **Retrieve via MCP** | Qwen CLI + MCP Tools | Получение данных/выполнение |
-| **Rerank** | Aggregate Review | Агрегация результатов ревью |
-| **Generate Answer** | Generate Code | Генерация кода/фиксов |
-| **Analyse Answer** | Validate (tests/linters) | Проверка качества |
-| **Rewrite Query** | Generate Fixes | Исправление проблем |
-| **Self-correction** | Fix Loop (max 3) | Цикл итераций |
+| RAG.txt (оригинал) | Task Loop with Validation | Qwenex | Назначение |
+|-------------------|--------------------------|--------|------------|
+| **User Query** | Plan | Plan (FEAT/PROP) | Входные данные |
+| **Analyse Query** | Analyse Task | Analyse Task | Решение: нужен ли контекст? |
+| **Retrieve via MCP** | Execute via MCP Tools | Qwen CLI + MCP Tools | Получение данных/выполнение |
+| **Rerank** | Aggregate Review | Aggregate Review | Агрегация результатов ревью |
+| **Generate Answer** | Generate Code | Generate Code | Генерация кода/фиксов |
+| **Analyse Answer** | Validate | Validate (tests/linters) | Проверка качества |
+| **Rewrite Query** | Generate Fixes | Generate Fixes | Исправление проблем |
+| **Self-correction** | Fix Loop (max 3) | Fix Loop (max 3) | Цикл итераций |
 
 ---
 
@@ -61,7 +63,9 @@ Plan → Analyse Task → [Qwen CLI + MCP] → Aggregate Review → Generate Cod
 
 Из `docs/RAG.txt`: **MCP Servers** обеспечивают стандартизированный интерфейс для подключения внешних инструментов.
 
-**В Qwenex:** Один MCP сервер с группами инструментов:
+**В Qwenex:** Один MCP сервер с группами инструментов (MVP).
+
+**⚠️ Technical Debt (ADR-016):** Если Qwen CLI зависнет или крашнется, он утянет за собой MCP сервер. Для v0.2 рассмотреть sidecar архитектуру.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -274,6 +278,8 @@ all_findings = [*critical_results, *other_results]
 
 **В Qwenex:** **"Do tests pass?" → No → "Generate fixes" → ...**
 
+**⚠️ Technical Debt (ADR-014):** ralphex запускает все 5 агентов параллельно через Claude Task tool. Qwenex использует гибридный подход (2+3) — требуется исследование производительности.
+
 ```python
 # src/qwenex/review.py
 async def review_loop(session_id: str, max_iterations: int = 3):
@@ -307,6 +313,39 @@ async def review_loop(session_id: str, max_iterations: int = 3):
     
     return False  # Превышено max_iterations
 ```
+
+### Qwen CLI интерфейс (ADR-017)
+
+**Интерфейс:** subprocess с stream-json output
+
+**Команда:**
+```bash
+qwen --yolo --output-format stream-json --prompt "<task>"
+```
+
+**Парсинг output:**
+```python
+# src/qwenex/qwen_executor.py
+async def run_task(self, prompt: str):
+    process = await asyncio.create_subprocess_exec(
+        "qwen",
+        "--yolo",
+        "--output-format", "stream-json",
+        "--prompt", prompt,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    
+    # Парсинг streaming JSON
+    async for line in process.stdout:
+        event = json.loads(line)
+        if event["type"] == "assistant":
+            yield event["message"]["content"][0]["text"]
+```
+
+**Таймауты:**
+- Max 10 минут на задачу
+- Graceful shutdown по SIGINT
 
 ---
 
@@ -629,5 +668,6 @@ class BrowserTools:
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 2.1 | 2026-02-27 | Исправлены architectural вопросы: переименован Agentic RAG → Task Loop with Validation, добавлены technical debt (ADR-014/016), Qwen CLI интерфейс (ADR-017) |
 | 2.0 | 2026-02-27 | Добавлен Agentic RAG паттерн, MCP интеграция, цикл самокоррекции |
 | 1.0 | 2026-02-26 | Initial version — черновик архитектуры |

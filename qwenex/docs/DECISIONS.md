@@ -490,15 +490,184 @@ ralphex (Go)                          Qwenex (Python)
 
 ---
 
-## ADR-013: Заимствование архитектуры ralphex без копирования кода
+## ADR-014: Гибридное ревью (2+3) — требуется исследование
 
 **Дата:** 2026-02-27  
-**Статус:** Принято  
-**Связанные:** ADR-011, ADR-012
+**Статус:** Требуется исследование  
+**Связанные:** ADR-003, FEAT-002
 
 ### Контекст
 
-ralphex v0.18.0 имеет зрелую архитектуру (worktree, executor, progress, dashboard). Нужно решить, что заимствовать концептуально, а что писать с нуля.
+В ADR-003 принято решение о гибридном выполнении ревью:
+- 2 агента параллельно (quality, implementation)
+- 3 агента последовательно (testing, simplification, documentation)
+
+**Проблема:** ralphex запускает все 5 агентов параллельно через Claude Task tool. Qwenex будет медленнее.
+
+### Требуется исследование
+
+**Вопрос:** Почему именно гибридный подход, а не все 5 параллельно?
+
+**Возможные причины:**
+1. **Qwen CLI не поддерживает Task tool** — нет нативной параллельности
+2. **Ресурсные ограничения** — 5 параллельных процессов = 5x API вызовов одновременно
+3. **API rate limits** — Qwen API может лимитировать параллельные запросы
+
+### План исследования
+
+1. Проверить, поддерживает ли Qwen CLI Task tool (аналог Claude Code)
+2. Протестировать 5 параллельных процессов Qwen CLI
+3. Измерить:
+   - Время выполнения (параллельно vs гибридно)
+   - API cost (параллельно vs гибридно)
+   - Rate limit ошибки
+
+### Критерии пересмотра
+
+**Перейти на полностью параллельное (5 агентов), если:**
+- Qwen CLI поддерживает Task tool ИЛИ
+- 5 параллельных процессов стабильны (нет rate limit) И
+- Время выполнения критично (пользователи жалуются)
+
+**Оставить гибридное (2+3), если:**
+- Qwen CLI не поддерживает Task tool И
+- 5 параллельных процессов вызывают rate limit ИЛИ
+- Resource usage неприемлем (5x память/CPU)
+
+### Временное решение (MVP)
+
+**Гибридное (2+3) для MVP**, пересмотреть в v0.2 после исследования.
+
+---
+
+## ADR-015: Agentic RAG термин — уточнение
+
+**Дата:** 2026-02-27  
+**Статус:** Принято  
+**Связанные:** ARCHITECTURE.md
+
+### Контекст
+
+В ARCHITECTURE.md использован термин "Agentic RAG" для описания архитектуры Qwenex.
+
+**Проблема:** RAG (Retrieval-Augmented Generation) подразумевает:
+- Семантический поиск
+- Векторную базу данных
+- Retrieval документов по схожести
+
+Qwenex **НЕ** делает retrieval в классическом понимании RAG.
+
+### Решение
+
+**Переименовать паттерн:** "Task Loop with Validation" вместо "Agentic RAG"
+
+**Обоснование:**
+- Точнее описывает архитектуру (выполнение задач + валидация)
+- Не путает с semantic search / vector DB
+- Соответствует ReAct pattern (Reason + Act)
+
+**Обновить документацию:**
+- ARCHITECTURE.md — переименовать секцию
+- LESSONS_FROM_RALPHEX.md — уточнить термин
+
+### Обновлённая терминология
+
+| Старый термин | Новый термин |
+|---------------|--------------|
+| Agentic RAG | Task Loop with Validation |
+| Retrieve via MCP | Execute via MCP Tools |
+| Rerank | Aggregate Review |
+| Self-correction loop | Fix Loop (max 3 iterations) |
+
+---
+
+## ADR-016: MCP сервер в одном процессе — technical debt
+
+**Дата:** 2026-02-27  
+**Статус:** Принято (technical debt)  
+**Связанные:** ADR-002
+
+### Контекст
+
+В ADR-002 принято решение: MCP сервер внутри одного процесса (не sidecar).
+
+**Риск:** Если Qwen CLI зависнет или крашнется, он утянет за собой MCP сервер.
+
+### Митигация (MVP)
+
+**Для MVP:**
+- Таймауты на Qwen CLI вызовы (max 10 мин на задачу)
+- Graceful shutdown при SIGINT/SIGTERM
+- Логирование состояния перед крашем
+
+### Technical Debt для v0.2
+
+**Перейти на sidecar архитектуру, если:**
+- Qwen CLI нестабилен (частые краши)
+- MCP сервер нужен независимо от Qwenex
+- Параллельные сессии требуют изоляции
+
+**План для v0.2:**
+1. Выделить MCP сервер в отдельный процесс
+2. JSON-RPC через stdin/stdout или HTTP
+3. Health check для MCP сервера
+4. Auto-restart при краше
+
+---
+
+---
+
+## ADR-017: Qwen CLI интерфейс — спецификация для FEAT-001
+
+**Дата:** 2026-02-27  
+**Статус:** Принято  
+**Связанные:** FEAT-001
+
+### Контекст
+
+Нужно явно описать, как Qwenex запускает Qwen CLI.
+
+### Решение
+
+**Интерфейс:** subprocess с stream-json output
+
+**Команда:**
+```bash
+qwen --yolo --output-format stream-json --prompt "<task>"
+```
+
+**Аргументы:**
+- `--yolo` — аналог `--dangerously-skip-permissions` в Claude Code
+- `--output-format stream-json` — streaming JSON для парсинга
+- `--prompt` — задача из плана
+
+**Парсинг output:**
+```python
+# src/qwenex/qwen_executor.py
+async def run_task(self, prompt: str):
+    process = await asyncio.create_subprocess_exec(
+        "qwen",
+        "--yolo",
+        "--output-format", "stream-json",
+        "--prompt", prompt,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    
+    # Парсинг streaming JSON
+    async for line in process.stdout:
+        event = json.loads(line)
+        if event["type"] == "assistant":
+            yield event["message"]["content"][0]["text"]
+```
+
+**Таймауты:**
+- Max 10 минут на задачу
+- Graceful shutdown по SIGINT
+
+---
+
+## ADR-013: Заимствование архитектуры ralphex без копирования кода
 
 ### Принципы заимствования
 
@@ -590,5 +759,6 @@ async def launch_review_agents(session_id: str):
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 2.1 | 2026-02-27 | Добавлены ADR-014/015/016/017 (architectural вопросы) |
 | 2.0 | 2026-02-27 | Добавлены ADR-011, ADR-012, ADR-013 (анализ ralphex v0.18.0) |
 | 1.0 | 2026-02-26 | Initial version — 10 ADR |
