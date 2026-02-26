@@ -149,6 +149,7 @@ qwenex/
 | [docs/COMPETITORS.md](./docs/COMPETITORS.md) | Анализ конкурентов (cmux, dmux, Sim, ralphex, др.) |
 | [docs/DECISIONS.md](./docs/DECISIONS.md) | Архитектурные решения (ADR) |
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Детальная архитектура системы |
+| [docs/LESSONS_FROM_RALPHEX.md](./docs/LESSONS_FROM_RALPHEX.md) | Извлечённые знания о ralphex v0.18.0 |
 | [specs/FEAT-001.md](./specs/FEAT-001.md) | Ядро оркестратора (первая спека) |
 
 ---
