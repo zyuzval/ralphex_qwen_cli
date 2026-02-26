@@ -1,8 +1,16 @@
 # Архитектурные решения (ADR)
 
-**Дата:** 2026-02-26  
-**Версия:** 1.0  
+**Дата:** 2026-02-27  
+**Версия:** 2.0  
 **Статус:** Завершено
+
+---
+
+## Изменения в версии 2.0
+
+- **ADR-011:** Обновлён анализ ralphex v0.18.0 (worktree isolation, ensureGitIgnored)
+- **ADR-012:** Подтверждён выбор Python для Qwenex (независимость от upstream)
+- **ADR-013:** Заимствование архитектуры ralphex без копирования кода
 
 ---
 
@@ -374,7 +382,179 @@ class OpenAIProvider(LLMProvider):
 
 ---
 
-## ADR-010: Трансформация планов (v0.2)
+## ADR-011: Анализ ralphex v0.18.0 и заимствование архитектуры
+
+**Дата:** 2026-02-27  
+**Статус:** Принято  
+**Связанные:** BOOT.md, docs/COMPETITORS.md
+
+### Контекст
+
+ralphex v0.18.0 содержит реализацию worktree isolation и ensureGitIgnored. Нужно решить: интегрироваться в ralphex или заимствовать архитектуру для Qwenex.
+
+### Рассмотренные альтернативы
+
+| Вариант | Плюсы | Минусы |
+|---------|-------|--------|
+| **Интеграция в ralphex** | 40% работы, готовые тесты, web dashboard | Зависимость от upstream, merge конфликты, ограничения архитектуры |
+| **Qwenex с нуля (Python)** | Полный контроль, MCP нативный, BOOT/WAL гибкость | 2x дольше (16-22 недели), писать тесты с нуля |
+| **Гибрид (Go ядро + Python MCP)** | Переиспользование ralphex, MCP нативный | Сложнее деплой, два процесса, IPC overhead |
+
+### Решение
+
+**Выбрали Qwenex с нуля (Python)**
+
+**Причины:**
+1. **BOOT/WAL/FEAT/PROP** — уникальное преимущество, сложно интегрировать в ralphex
+2. **MCP сервер** — нативный Python проще чем Go+Python гибрид
+3. **Трансформация планов** — AI-фича, проще реализовать на Python
+4. **Локальные модели** — Ollama интеграция проще на Python
+5. **Независимость** — нет рисков от upstream ralphex
+
+**Что заимствуем из ralphex:**
+- ✅ **Worktree isolation концепция** — git worktree для изоляции задач
+- ✅ **ensureGitIgnored логика** — авто-добавление паттернов в .gitignore
+- ✅ **5-агентное ревью** — гибридное выполнение (2 параллельно + 3 последовательно)
+- ✅ **Web dashboard концепция** — real-time мониторинг прогресса
+- ✅ **VCS абстракция** — поддержка разных VCS через конфигурацию
+
+**Что НЕ заимствуем:**
+- ❌ **Код** — пишем свой на Python (нет копирования)
+- ❌ **Зависимости** — свой pip install (не go modules)
+- ❌ **CI/CD** — свой pipeline (не GitHub Actions ralphex)
+- ❌ **Структура** — своя организация проекта
+
+**Архитектурные параллели:**
+
+```
+ralphex (Go)                          Qwenex (Python)
+├── cmd/ralphex/main.go              ├── src/qwenex/cli.py
+├── pkg/executor/                    ├── src/qwenex/orchestrator.py
+├── pkg/git/service.go               ├── src/qwenex/git_wrapper.py
+├── pkg/config/                      ├── src/qwenex/config.py
+├── pkg/progress/                    ├── src/qwenex/progress.py
+├── pkg/web/dashboard.go             ├── src/qwenex/dashboard.py (задел)
+└── pkg/mcp/ (нет)                   └── src/mcp/server.py ✅ Уникальное
+```
+
+**Последствия:**
+- ✅ Полный контроль над архитектурой
+- ✅ MCP сервер нативный (Python SDK)
+- ✅ BOOT/WAL/FEAT/PROP без компромиссов
+- ❌ 2x дольше до MVP (16-22 недели vs 8-12)
+- ❌ Нужно писать тесты с нуля (80% покрытие)
+- ❌ Наступим на свои грабли (ralphex уже решил проблемы)
+
+**Митигация рисков:**
+- Тесты с первого дня (pytest, 80%+ покрытие)
+- Заимствование архитектуры (не изобретать велосипед)
+- Документирование решений (ADR, BOOT, WAL)
+- Постепенная разработка (MVP → v0.2 → v0.3)
+
+---
+
+## ADR-012: Подтверждение выбора Python (после анализа ralphex v0.18.0)
+
+**Дата:** 2026-02-27  
+**Статус:** Принято  
+**Связанные:** ADR-001, ADR-011
+
+### Контекст
+
+После анализа ralphex v0.18.0 (worktree isolation, ensureGitIgnored, VCS абстракция) нужно подтвердить или пересмотреть выбор Python для Qwenex.
+
+### Рассмотренные альтернативы
+
+| Вариант | Плюсы | Минусы |
+|---------|-------|--------|
+| **Python (подтвердить)** | MCP SDK, AI-экосистема, BOOT/WAL гибкость | 2x дольше, нет одного бинарника |
+| **Go (переключиться)** | Переиспользование ralphex, один бинарник | Нет MCP SDK, BOOT/WAL сложно интегрировать |
+
+### Решение
+
+**Подтвердили Python (полностью)**
+
+**Причины:**
+1. **MCP сервер** — официальный SDK только для Python
+2. **BOOT/WAL/FEAT/PROP** — уникальная система, сложно интегрировать в ralphex
+3. **Трансформация планов** — AI-фича (план → FEAT/PROP), проще на Python
+4. **Локальные модели** — Ollama, vLLM интеграция проще на Python
+5. **Независимость** — нет рисков от upstream ralphex
+
+**Последствия:**
+- ✅ MCP нативный (не sidecar)
+- ✅ BOOT/WAL/FEAT/PROP без компромиссов
+- ✅ Трансформация планов через LLM
+- ❌ 16-22 недели до MVP (vs 8-12 для интеграции)
+- ❌ Нужно писать worktree isolation с нуля
+
+---
+
+## ADR-013: Заимствование архитектуры ralphex без копирования кода
+
+**Дата:** 2026-02-27  
+**Статус:** Принято  
+**Связанные:** ADR-011, ADR-012
+
+### Контекст
+
+ralphex v0.18.0 имеет зрелую архитектуру (worktree, executor, progress, dashboard). Нужно решить, что заимствовать концептуально, а что писать с нуля.
+
+### Принципы заимствования
+
+**✅ Заимствуем концепции:**
+- Worktree isolation — git worktree для каждой задачи
+- ensureGitIgnored — авто-коммит .gitignore изменений
+- 5-агентное ревью — гибридное выполнение
+- Progress tracking — progress файлы в .ralphex/
+- Web dashboard — real-time мониторинг
+- VCS абстракция — поддержка разных VCS
+
+**❌ НЕ заимствуем код:**
+- Пишем свой код на Python (не копируем Go)
+- Своя организация проекта (не как ralphex)
+- Свои тесты (pytest, не testing)
+- Свой CI/CD (GitHub Actions, но свой)
+
+### Реализация
+
+**Worktree isolation (Python):**
+```python
+# src/qwenex/git_wrapper.py
+import subprocess
+
+def create_worktree(branch: str, path: str):
+    """Создать git worktree для изоляции задачи"""
+    subprocess.run(["git", "worktree", "add", "-b", branch, path])
+
+def remove_worktree(path: str):
+    """Удалить git worktree после завершения"""
+    subprocess.run(["git", "worktree", "remove", "--force", path])
+```
+
+**ensureGitIgnored (Python):**
+```python
+# src/qwenex/git_wrapper.py
+def ensure_git_ignored(patterns: list[str]):
+    """Добавить паттерны в .gitignore и закоммитить если чисто"""
+    # 1. Проверить .gitignore на изменения
+    # 2. Добавить паттерны
+    # 3. Закоммитить если было чисто
+```
+
+**5-агентное ревью (гибридное):**
+```python
+# src/qwenex/review.py
+async def launch_review_agents(session_id: str):
+    # Параллельно: quality, implementation (критичные)
+    # Последовательно: testing, simplification, documentation
+```
+
+**Последствия:**
+- ✅ Учимся на ошибках ralphex (не изобретаем велосипед)
+- ✅ Сохраняем независимость (нет копирования кода)
+- ✅ Лицензионная чистота (MIT, нет копипасты)
+- ⚠️ Нужно понимать архитектуру ralphex (документировано в docs/)
 
 **Дата:** 2026-02-26  
 **Статус:** Отложено (v0.2)  
@@ -410,4 +590,5 @@ class OpenAIProvider(LLMProvider):
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 2.0 | 2026-02-27 | Добавлены ADR-011, ADR-012, ADR-013 (анализ ralphex v0.18.0) |
 | 1.0 | 2026-02-26 | Initial version — 10 ADR |
