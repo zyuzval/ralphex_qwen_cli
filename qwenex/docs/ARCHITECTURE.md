@@ -1,8 +1,16 @@
 # Архитектура Qwenex
 
-**Дата:** 2026-02-26  
-**Версия:** 1.0  
-**Статус:** Черновик
+**Дата:** 2026-02-27  
+**Версия:** 2.0  
+**Статус:** Завершено
+
+---
+
+## Изменения в версии 2.0
+
+- **Добавлено:** Agentic RAG паттерн как архитектурная модель
+- **Добавлено:** MCP интеграция по аналогии с RAG.txt
+- **Уточнено:** Цикл самокоррекции (из RAG.txt)
 
 ---
 
@@ -10,9 +18,82 @@
 
 **Qwenex** — это оркестратор для автономного выполнения планов разработки через Qwen CLI с системой спецификаций (BOOT/WAL/FEAT/PROP) и MCP-инструментами.
 
+### Архитектурный паттерн: Agentic RAG
+
+Qwenex использует паттерн **Agentic RAG** (Retrieval-Augmented Generation с агентным поведением) из `docs/RAG.txt`:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Agentic RAG Паттерн                           │
+│                                                                   │
+│  User Query → Analyse → [Retrieve via MCP] → Rerank → Generate  │
+│       ↑                                              │           │
+│       └────────────── Self-correction ───────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Применение в Qwenex:**
+
+```
+Plan → Analyse Task → [Qwen CLI + MCP] → Aggregate Review → Generate Code
+  ↑                                                                    │
+  └────────────────── Validate + Fix Loop ─────────────────────────────┘
+```
+
+**Соответствие компонентов:**
+
+| RAG.txt | Qwenex | Назначение |
+|---------|--------|------------|
+| **User Query** | Plan (FEAT/PROP) | Входные данные |
+| **Analyse Query** | Analyse Task | Решение: нужен ли контекст? |
+| **Retrieve via MCP** | Qwen CLI + MCP Tools | Получение данных/выполнение |
+| **Rerank** | Aggregate Review | Агрегация результатов ревью |
+| **Generate Answer** | Generate Code | Генерация кода/фиксов |
+| **Analyse Answer** | Validate (tests/linters) | Проверка качества |
+| **Rewrite Query** | Generate Fixes | Исправление проблем |
+| **Self-correction** | Fix Loop (max 3) | Цикл итераций |
+
 ---
 
 ## 🏗️ Высокоуровневая архитектура
+
+### MCP интеграция (по аналогии с RAG.txt)
+
+Из `docs/RAG.txt`: **MCP Servers** обеспечивают стандартизированный интерфейс для подключения внешних инструментов.
+
+**В Qwenex:** Один MCP сервер с группами инструментов:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Qwenex CLI                            │
+│  (оркестратор, аналог LLM Agent в RAG.txt)              │
+└────────────────────┬────────────────────────────────────┘
+                     │ MCP вызовы (JSON-RPC 2.0)
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                    MCP Server                            │
+│  ┌───────────────┐  ┌───────────────┐  ┌─────────────┐ │
+│  │  WAL Tools    │  │  Git Tools    │  │  Review     │ │
+│  │  📊 Прогресс  │  │  🔀 Ветки     │  │  🔍 Ревью   │ │
+│  │  📋 Задачи    │  │  ⚙️ Worktree  │  │  📝 Агенты  │ │
+│  └───────────────┘  └───────────────┘  └─────────────┘ │
+│  ┌───────────────┐  ┌───────────────┐                  │
+│  │  Qwen Tools   │  │  Config Tools │                  │
+│  │  🤗 Qwen CLI  │  │  ⚙️ Настройки │                  │
+│  │  📊 Промпты   │  │  📁 Пути      │                  │
+│  └───────────────┘  └───────────────┘                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Инструменты (аналогия с RAG.txt MCP Servers):**
+
+| MCP Server в RAG.txt | MCP Tools в Qwenex | Назначение |
+|---------------------|-------------------|------------|
+| MCP Server 1 (🔧 🧠 📄) | WAL Tools | Управление прогрессом и задачами |
+| MCP Server 2 (🔧 🧠 📄) | Git Tools | Git операции (worktree, commits) |
+| MCP Server 3 (🔧 🧠 📄) | Review Tools | 5-агентное ревью |
+| — | Qwen Tools | Qwen CLI интеграция |
+| — | Config Tools | Конфигурация Qwenex |
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -185,6 +266,46 @@ for agent in ["testing", "simplification", "documentation"]:
 
 # Агрегация
 all_findings = [*critical_results, *other_results]
+```
+
+### Цикл самокоррекции (из RAG.txt)
+
+Из `docs/RAG.txt`: **"Is the answer correct?" → No → "Rewrite Query" → ...**
+
+**В Qwenex:** **"Do tests pass?" → No → "Generate fixes" → ...**
+
+```python
+# src/qwenex/review.py
+async def review_loop(session_id: str, max_iterations: int = 3):
+    """
+    Цикл самокоррекции из RAG.txt:
+    1. Launch review agents
+    2. Aggregate findings
+    3. Generate fixes (аналог "Rewrite Query")
+    4. Validate (аналог "Analyse Answer")
+    5. Repeat if needed (max 3 iterations)
+    """
+    iteration = 0
+    while iteration < max_iterations:
+        # Запуск 5 агентов
+        findings = await launch_review_agents(session_id)
+        
+        # Если нет критичных замечаний — выход
+        if not findings.critical:
+            return True
+        
+        # Генерация фиксов (аналог "Rewrite Query" в RAG.txt)
+        fixes = await generate_fixes(findings)
+        
+        # Валидация (аналог "Analyse Answer" в RAG.txt)
+        validation = await validate(fixes)
+        
+        if validation.passed:
+            return True
+        
+        iteration += 1
+    
+    return False  # Превышено max_iterations
 ```
 
 ---
@@ -508,4 +629,5 @@ class BrowserTools:
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 2.0 | 2026-02-27 | Добавлен Agentic RAG паттерн, MCP интеграция, цикл самокоррекции |
 | 1.0 | 2026-02-26 | Initial version — черновик архитектуры |
