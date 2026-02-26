@@ -2,6 +2,89 @@
 
 import pytest
 from qwenex.models import Plan, Task, Checkbox
+from qwenex.plan_parser import parse_plan
+
+
+def test_parse_plan_simple():
+    """Test parsing a simple plan."""
+    markdown = """# Plan: My Feature
+
+## Validation Commands
+- pytest
+- ruff check
+
+### Task 1: Implement feature
+- [ ] Add code
+- [ ] Add tests
+- [x] Done
+"""
+    plan = parse_plan(markdown, "docs/plans/feature.md")
+
+    assert plan.title == "My Feature"
+    assert plan.file_path == "docs/plans/feature.md"
+    assert plan.validation_commands == ["pytest", "ruff check"]
+    assert len(plan.tasks) == 1
+    assert plan.tasks[0].number == "1"
+    assert plan.tasks[0].title == "Implement feature"
+    assert len(plan.tasks[0].checkboxes) == 3
+    assert plan.tasks[0].checkboxes[0].completed is False
+    assert plan.tasks[0].checkboxes[1].completed is False
+    assert plan.tasks[0].checkboxes[2].completed is True
+
+
+def test_parse_plan_multiple_tasks():
+    """Test parsing plan with multiple tasks."""
+    markdown = """# Plan: Big Feature
+
+## Validation Commands
+- pytest
+
+### Task 1: First part
+- [ ] Code part 1
+
+### Task 2: Second part
+- [ ] Code part 2
+"""
+    plan = parse_plan(markdown, "docs/plans/big.md")
+
+    assert plan.title == "Big Feature"
+    assert len(plan.tasks) == 2
+    assert plan.tasks[0].number == "1"
+    assert plan.tasks[1].number == "2"
+
+
+def test_parse_plan_no_validation():
+    """Test parsing plan without validation commands."""
+    markdown = """# Plan: Simple
+
+### Task 1: Do something
+- [ ] Do it
+"""
+    plan = parse_plan(markdown, "docs/plans/simple.md")
+
+    assert plan.validation_commands == []
+    assert len(plan.tasks) == 1
+
+
+def test_parse_plan_non_integer_task_numbers():
+    """Support task numbers like 2.5, 2a, etc."""
+    markdown = """# Plan: Complex
+
+### Task 1: First
+- [ ] Code
+
+### Task 2.5: Middle
+- [ ] Code
+
+### Task 3: Last
+- [ ] Code
+"""
+    plan = parse_plan(markdown, "docs/plans/complex.md")
+
+    assert len(plan.tasks) == 3
+    assert plan.tasks[0].number == "1"
+    assert plan.tasks[1].number == "2.5"
+    assert plan.tasks[2].number == "3"
 
 
 def test_checkbox_creation():
