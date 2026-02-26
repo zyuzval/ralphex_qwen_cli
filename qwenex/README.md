@@ -4,7 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Status: MVP Development](https://img.shields.io/badge/status-MVP%20development-orange)](./WAL.md)
+[![Status: MVP Documentation Complete](https://img.shields.io/badge/status-Documentation%20Complete-green)](./WAL.md)
+[![Sessions: 5 completed](https://img.shields.io/badge/sessions-5%20completed-blue)](./WAL.md)
 
 ---
 
@@ -62,13 +63,30 @@ qwenex --init
 |----------|----------|
 | [BOOT.md](./BOOT.md) | Конституция проекта — архитектурные решения, правила |
 | [WAL.md](./WAL.md) | Текущий статус, задачи, прогресс разработки |
-| [docs/COMPETITORS.md](./docs/COMPETITORS.md) | Анализ конкурентов (cmux, dmux, Sim, ralphex) |
-| [docs/DECISIONS.md](./docs/DECISIONS.md) | Архитектурные решения (ADR) |
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Детальная архитектура системы |
+| [docs/COMPETITORS.md](./docs/COMPETITORS.md) | Анализ конкурентов (cmux, dmux, Sim, ralphex v0.18.0) |
+| [docs/DECISIONS.md](./docs/DECISIONS.md) | Архитектурные решения (ADR, 18 решений) |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Детальная архитектура системы (Task Loop with Validation) |
+| [docs/LESSONS_FROM_RALPHEX.md](./docs/LESSONS_FROM_RALPHEX.md) | Извлечённые знания о ralphex v0.18.0 |
 
 ---
 
 ## 🏗️ Архитектура
+
+### Паттерн: Task Loop with Validation
+
+Qwenex использует паттерн **Task Loop with Validation** (также известный как ReAct pattern):
+
+```
+Plan → Analyse → [Execute via MCP] → Aggregate → Generate
+ ↑                                                │
+ └──────────────── Fix Loop (max 3) ──────────────┘
+```
+
+**Технические долги (для v0.2):**
+- ⚠️ MCP сервер в одном процессе (риск: Qwen CLI краш → MCP падает)
+- ⚠️ Гибридное ревью (2+3) — требуется исследование производительности
+
+### Высокоуровневая архитектура
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -114,10 +132,24 @@ qwenex --init
 
 ## 🗺️ Roadmap
 
-### MVP (Недели 1-4)
+### MVP (Недели 1-4) — 🚧 В разработке
 
-- [x] BOOT.md, WAL.md для Qwenex
-- [x] docs/COMPETITORS.md, docs/DECISIONS.md
+**Сессии S-000 — S-005 (2026-02-26 — 2026-02-27):**
+
+- [x] **S-000:** Инициализация проекта, структура директорий
+- [x] **S-001:** BOOT.md, анализ конкурентов
+- [x] **S-002:** Синхронизация с ralphex v0.18.0 (worktree, ensureGitIgnored)
+- [x] **S-003:** DECISIONS.md v2.0 (ADR-011/012/013), COMPETITORS.md v2.0
+- [x] **S-004:** ARCHITECTURE.md v2.0 (Agentic RAG паттерн)
+- [x] **S-005:** BOOT.md WAL процесс, DECISIONS.md v2.1 (ADR-014/015/016/017/018)
+
+**Документация:**
+- [x] BOOT.md (Конституция проекта)
+- [x] WAL.md (Текущий статус, 5 сессий)
+- [x] docs/COMPETITORS.md v2.0 (Анализ конкурентов)
+- [x] docs/DECISIONS.md v2.1 (18 ADR)
+- [x] docs/ARCHITECTURE.md v2.1 (Task Loop with Validation)
+- [x] docs/LESSONS_FROM_RALPHEX.md (Извлечённые знания)
 - [ ] FEAT-001 (Ядро оркестратора)
 - [ ] FEAT-002 (Система ревью)
 - [ ] FEAT-003 (MCP сервер)
@@ -304,7 +336,8 @@ MIT — см. [LICENSE](LICENSE) для деталей.
 
 | Версия | Дата | Статус |
 |--------|------|--------|
-| 0.1.0 | 2026-02-26 | MVP разработка (документация) |
+| 0.1.0 | 2026-02-27 | MVP разработка (документация завершена, 5 сессий) |
+| 0.0.1 | 2026-02-26 | Инициализация проекта |
 
 ---
 
