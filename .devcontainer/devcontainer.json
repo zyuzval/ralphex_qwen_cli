@@ -1,0 +1,22 @@
+{
+  "name": "Safe Cline Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/python:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "saoudrizwan.claude-dev"  // Cline extension
+      ]
+    }
+  },
+  "mounts": [
+    // Только текущая папка проекта
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",  // Не root!
+  "postCreateCommand": "echo 'Cline is now isolated in Docker!'"
+}
