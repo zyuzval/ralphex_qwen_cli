@@ -1,0 +1,209 @@
+"""Orchestrate plan execution."""
+
+import re
+from dataclasses import dataclass, field
+from typing import List, Optional
+
+from .models import Plan, Task
+from .qwen_executor import QwenExecutor, TaskTimeoutError
+from .validator import Validator
+from .git_wrapper import GitWrapper
+from .progress import ProgressTracker
+
+
+class MaxIterationsExceededError(Exception):
+    """Raised when task exceeds max iterations."""
+    pass
+
+
+@dataclass
+class OrchestratorResult:
+    """Result of orchestration."""
+    tasks_completed: int
+    tasks_failed: int
+    validation_passed: bool
+    review_markers: List[str] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        return (
+            f"Orchestration complete: {self.tasks_completed} completed, "
+            f"{self.tasks_failed} failed"
+        )
+
+
+class Orchestrator:
+    """Orchestrate plan execution with validation and retry."""
+
+    def __init__(
+        self,
+        plan: Plan,
+        max_iterations: int = 3,
+        timeout_min: int = 10,
+        auto_mode: bool = False,
+    ):
+        """Initialize orchestrator.
+
+        Args:
+            plan: Plan to execute
+            max_iterations: Max retry iterations per task
+            timeout_min: Timeout per task in minutes
+            auto_mode: Auto-approve review markers
+        """
+        self.plan = plan
+        self.max_iterations = max_iterations
+        self.timeout_min = timeout_min
+        self.auto_mode = auto_mode
+
+        self.executor = QwenExecutor(timeout_min=timeout_min)
+        self.validator = Validator()
+        self.git = GitWrapper()
+        self.progress = ProgressTracker(plan_file=plan.file_path)
+
+    def _extract_review_markers(self, output: str) -> List[str]:
+        """Extract REVIEW markers from output.
+
+        Args:
+            output: Qwen CLI output
+
+        Returns:
+            List of review marker comments
+        """
+        pattern = r'<!--\s*REVIEW:\s*(.+?)\s*-->'
+        return re.findall(pattern, output, re.DOTALL)
+
+    def _build_task_prompt(self, task: Task) -> str:
+        """Build prompt for task execution.
+
+        Args:
+            task: Task to execute
+
+        Returns:
+            Prompt string for Qwen CLI
+        """
+        checkboxes = "\n".join(
+            f"- {'[x]' if cb.completed else '[ ]'} {cb.text}"
+            for cb in task.checkboxes
+        )
+        return (
+            f"Task {task.number}: {task.title}\n\n"
+            f"Checklist:\n{checkboxes}\n\n"
+            f"Complete this task following the project conventions."
+        )
+
+    async def execute_task_with_retry(
+        self,
+        task: Task,
+    ) -> OrchestratorResult:
+        """Execute task with validation and retry.
+
+        Args:
+            task: Task to execute
+
+        Returns:
+            OrchestratorResult with success status
+
+        Raises:
+            MaxIterationsExceededError: If task fails after max iterations
+        """
+        self.progress.task_started(task.number, task.title)
+
+        iteration = 0
+        all_output = []
+        all_markers = []
+
+        while iteration < self.max_iterations:
+            iteration += 1
+
+            # Execute task via Qwen CLI
+            self.progress.log(f"Executing task {task.number} (attempt {iteration})")
+            
+            output_lines = []
+            async for event in self.executor.run_task(self._build_task_prompt(task)):
+                output_lines.append(str(event))
+                if event.get('type') == 'result':
+                    result_text = event.get('result', '')
+                    all_output.append(result_text)
+                    # Extract review markers
+                    markers = self._extract_review_markers(result_text)
+                    all_markers.extend(markers)
+
+            output_str = "\n".join(all_output)
+
+            # Run validation
+            self.progress.validation_started(self.plan.validation_commands)
+            validation_result = await self.validator.run(self.plan.validation_commands)
+
+            if validation_result.success:
+                self.progress.validation_passed()
+                self.progress.task_completed(task.number, task.title)
+                
+                # Git commit
+                commit_msg = f"feat: complete task {task.number}: {task.title}"
+                self.git.add(["."])
+                try:
+                    self.git.commit(commit_msg)
+                    self.progress.git_committed(commit_msg)
+                except Exception:
+                    self.progress.log("Warning: git commit failed")
+
+                return OrchestratorResult(
+                    tasks_completed=1,
+                    tasks_failed=0,
+                    validation_passed=True,
+                    review_markers=all_markers
+                )
+            else:
+                self.progress.validation_failed(validation_result.output)
+                self.progress.log(f"Validation failed, retry {iteration}/{self.max_iterations}")
+
+        # Max iterations exceeded
+        raise MaxIterationsExceededError(
+            f"Task {task.number} failed after {self.max_iterations} iterations"
+        )
+
+    async def run(self) -> OrchestratorResult:
+        """Run all tasks in the plan.
+
+        Returns:
+            OrchestratorResult with overall status
+        """
+        self.progress.log(f"Starting plan: {self.plan.title}")
+        self.progress.save()
+
+        total_completed = 0
+        total_failed = 0
+        all_markers = []
+
+        while not self.plan.is_complete:
+            task = self.plan.current_task
+            if task is None:
+                break
+
+            try:
+                result = await self.execute_task_with_retry(task)
+                total_completed += result.tasks_completed
+                all_markers.extend(result.review_markers)
+                
+                # Move to next task
+                self.plan.next_task()
+                
+            except (MaxIterationsExceededError, TaskTimeoutError) as e:
+                self.progress.log(f"Task failed: {e}")
+                total_failed += 1
+                
+                # Continue to next task or stop based on mode
+                if not self.auto_mode:
+                    self.progress.save()
+                    raise
+                
+                self.plan.next_task()
+
+        self.progress.log(f"Plan complete: {total_completed} tasks, {total_failed} failed")
+        self.progress.save()
+
+        return OrchestratorResult(
+            tasks_completed=total_completed,
+            tasks_failed=total_failed,
+            validation_passed=total_failed == 0,
+            review_markers=all_markers
+        )
