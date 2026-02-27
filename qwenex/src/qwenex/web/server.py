@@ -1,7 +1,10 @@
 """FastAPI web server for dashboard."""
 
+from pathlib import Path
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 
 
 def create_app() -> FastAPI:
@@ -12,10 +15,13 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(title="Qwenex Dashboard")
     
+    # Setup templates
+    templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+    
     @app.get("/")
-    async def index():
+    async def index(request: Request):
         """Serve dashboard HTML."""
-        return HTMLResponse("<html><body><h1>Qwenex Dashboard</h1></body></html>")
+        return templates.TemplateResponse("dashboard.html", {"request": request})
     
     @app.get("/health")
     async def health():
