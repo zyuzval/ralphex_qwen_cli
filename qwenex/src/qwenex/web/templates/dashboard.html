@@ -54,7 +54,7 @@
         
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            
+
             switch(data.type) {
                 case 'connected':
                     statusText.textContent = 'Connected';
@@ -62,6 +62,9 @@
                 case 'progress':
                     progressFill.style.width = data.percent + '%';
                     progressText.textContent = data.percent + '%';
+                    if (data.task) {
+                        currentTask.innerHTML = `<div class="task-title">${data.task}</div>`;
+                    }
                     break;
                 case 'task_started':
                     currentTask.innerHTML = `<div class="task-title">${data.task}</div>`;

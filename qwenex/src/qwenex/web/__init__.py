@@ -1,5 +1,5 @@
 """Web dashboard package."""
 
-from .server import create_app
+from .server import app
 
-__all__ = ["create_app"]
+__all__ = ["app"]

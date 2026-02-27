@@ -61,8 +61,22 @@ class BroadcastService:
     
     async def send_progress(self, percent: float, task: Optional[str] = None) -> None:
         """Send progress update."""
-        update = ProgressUpdate(percent=percent, current_task=task)
-        await self.broadcast(update)
+        update = {
+            "type": "progress",
+            "percent": percent,
+            "task": task
+        }
+        self.current_update = update  # Store for status endpoint
+        
+        disconnected = []
+        for client in self.clients:
+            try:
+                await client.send_json(update)
+            except Exception:
+                disconnected.append(client)
+        
+        for client in disconnected:
+            self.disconnect(client)
     
     async def send_log(self, message: str, level: str = "info") -> None:
         """Send log entry."""
