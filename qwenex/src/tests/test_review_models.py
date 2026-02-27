@@ -45,11 +45,39 @@ def test_review_marker_parse():
 Some other text
 """
     markers = ReviewMarker.parse_from_output(output)
-    
+
     assert len(markers) == 1
     assert markers[0].suggestion == "Add docstring"
     assert markers[0].reason == "PEP 257"
     assert markers[0].awaits == "решения человека"
+
+
+def test_review_marker_parse_russian():
+    """Test Russian format parsing."""
+    output = "<!-- REVIEW: Fix bug — причина: Security issue — ждёт: Confirmation -->"
+    markers = ReviewMarker.parse_from_output(output)
+    assert len(markers) == 1
+    assert markers[0].suggestion == "Fix bug"
+    assert markers[0].reason == "Security issue"
+
+
+def test_review_marker_parse_english():
+    """Test English format parsing."""
+    output = "<!-- REVIEW: Fix bug - reason: Security issue - awaits: Confirmation -->"
+    markers = ReviewMarker.parse_from_output(output)
+    assert len(markers) == 1
+    assert markers[0].suggestion == "Fix bug"
+    assert markers[0].reason == "Security issue"
+
+
+def test_review_marker_parse_mixed():
+    """Test mixed language parsing."""
+    output = """
+    <!-- REVIEW: Fix A — причина: Reason A — ждёт: Awaits A -->
+    <!-- REVIEW: Fix B - reason: Reason B - awaits: Awaits B -->
+    """
+    markers = ReviewMarker.parse_from_output(output)
+    assert len(markers) == 2
 
 
 def test_review_report_creation():

@@ -36,12 +36,17 @@ class ReviewMarker:
     
     @classmethod
     def parse_from_output(cls, output: str) -> list["ReviewMarker"]:
-        """Parse all REVIEW markers from agent output."""
-        # Match single-line REVIEW markers
-        pattern = r'<!-- REVIEW: ([^-]+) — причина: ([^-]+) — ждёт: ([^-]+) -->'
-        markers = []
+        """Parse all REVIEW markers from agent output.
         
-        for match in re.finditer(pattern, output):
+        Supports both Russian and English formats:
+        - Russian: <!-- REVIEW: comment — причина: reason — ждёт: awaits -->
+        - English: <!-- REVIEW: comment - reason: reason - awaits: awaits -->
+        """
+        # Match single-line REVIEW markers with bilingual support
+        pattern = r'<!--\s*REVIEW:\s*(.+?)\s*[-—]\s*(?:причина|reason):\s*(.+?)\s*[-—]\s*(?:ждёт|awaits):\s*(.+?)\s*-->'
+        markers = []
+
+        for match in re.finditer(pattern, output, re.IGNORECASE):
             suggestion, reason, awaits = match.groups()
             markers.append(cls(
                 suggestion=suggestion.strip(),
@@ -50,7 +55,7 @@ class ReviewMarker:
                 raw=match.group(0),
                 critical="критичных" in awaits.lower() or "critical" in awaits.lower()
             ))
-        
+
         return markers
 
 
