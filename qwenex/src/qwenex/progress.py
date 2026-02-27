@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Callable, Awaitable
+from typing import List, Optional, Callable, Awaitable, Dict, Any
 from pathlib import Path
 
 
@@ -42,7 +42,7 @@ class ProgressTracker:
         """Get current timestamp."""
         return datetime.now().strftime("%H:%M:%S")
 
-    async def _notify(self, event_type: str, data: dict) -> None:
+    async def _notify(self, event_type: str, data: Dict[str, Any]) -> None:
         """Send notification via callback."""
         if self.callback:
             await self.callback(event_type, data)
@@ -113,7 +113,7 @@ class ProgressTracker:
         """Log review system start."""
         self.log("🔍 Starting review system...")
 
-    def review_completed(self, summary: str, results: list) -> None:
+    def review_completed(self, summary: str, results: List[Any]) -> None:
         """Log review system completion.
 
         Args:

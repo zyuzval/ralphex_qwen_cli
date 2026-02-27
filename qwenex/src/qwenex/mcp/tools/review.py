@@ -21,7 +21,7 @@ REPORTS_DIR = Path(".qwenex/reports")
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def save_review_report(session_id: str, report: ReviewReport):
+def save_review_report(session_id: str, report: ReviewReport) -> None:
     """Save review report to disk."""
     # TODO: Implement proper serialization
     pass
@@ -41,7 +41,7 @@ def load_review_report(session_id: str) -> ReviewReport:
     )
 
 
-def apply_marker_fix(marker: ReviewMarker):
+def apply_marker_fix(marker: ReviewMarker) -> None:
     """Apply a REVIEW marker fix to the code."""
     # TODO: Implement actual fix application
     logger.info(f"Applying fix: {marker.suggestion}")

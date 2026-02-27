@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 from fastmcp import FastMCP
 
 mcp = FastMCP("qwenex-config")
@@ -29,13 +30,13 @@ def get_config() -> dict:
         return json.load(f)
 
 
-def set_config_value(key: str, value) -> bool:
+def set_config_value(key: str, value: Any) -> bool:
     """Set config value.
-    
+
     Args:
         key: Config key
         value: Config value
-    
+
     Returns:
         True if successful
     """
@@ -64,7 +65,7 @@ async def config_get() -> dict:
 
 
 @mcp.tool()
-async def config_set(key: str, value) -> str:
+async def config_set(key: str, value: Any) -> str:
     """
     Установить значение конфигурации.
 
