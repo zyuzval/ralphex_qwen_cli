@@ -36,6 +36,7 @@ qwenex = "qwenex.cli:entry_point"
 qwenex-review = "qwenex.cli:review_entry_point"
 qwenex-mcp = "qwenex.mcp.cli:main"
 qwenex-ollama = "qwenex.ollama_cli:ollama_entry_point"
+qwenex-web = "qwenex.web.cli:web_entry_point"
 
 [tool.setuptools.packages.find]
 where = ["src"]
