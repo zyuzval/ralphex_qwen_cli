@@ -15,18 +15,27 @@
 
 ## ⚡ Текущая задача
 
-**[MAJOR-ISSUES-FIX: Code Quality]** — Исправление 8 major issues из code review
+**[CI-FIX: Windows тесты]** — Исправление кроссплатформенных проблем в ralphex тестах
 
-- **Следующий шаг:** 3/8 исправлено (Error handling, Type hints, Bilingual parsing), 5 осталось
+- **Следующий шаг:** 2 Go ошибки исправлено (MaxScannerBuffer, NewWithExecutors), 4 категории тестовых ошибок осталось
 - **Статус:** 🔄 В работе
-- **Спека:** docs/plans/2026-02-27-major-issues-fix.md
-- **Зависит от:** CODE-REVIEW ✅
+- **Спека:** N/A (CI maintenance)
+- **Зависит от:** N/A
+
+### CI ошибки (Windows):
+
+| Категория | Ошибок | Приоритет | Решение |
+|-----------|--------|-----------|---------|
+| Unix команды | 6 | 🔴 Критичный | Кроссплатформенные команды |
+| Path separator | 2 | 🔴 Критичный | filepath.ToSlash() |
+| Git worktree | 10 | 🟡 Средний | git stash в CI |
+| Permission denied | 10 | 🟢 Низкий | t.Skip() на Windows |
 
 ---
 
 ## ✅ Завершено (MVP — P0+P1)
 
-**43 задачи завершено · 150+ тестов · 27 MCP инструментов**
+**46 задач завершено · 150+ тестов · 27 MCP инструментов**
 
 | Веха | Задачи | Тесты | Статус |
 |------|--------|-------|--------|
@@ -41,6 +50,7 @@
 | **MAJOR-1** (Error handling) | 1 | 10 | ✅ |
 | **MAJOR-2** (Type hints) | 1 | - | ✅ |
 | **MAJOR-3** (Bilingual parsing) | 1 | 3 | ✅ |
+| **CI-FIX-1** (Go build errors) | 2 | - | ✅ |
 
 **Детали:** [docs/plans/](./docs/plans/) · [CHANGELOG.md](../CHANGELOG.md)
 
@@ -130,11 +140,11 @@
 
 | Сессия | Дата | Что сделано |
 |--------|------|-------------|
+| **S-017** | 2026-02-27 | CI-FIX: Исправлены тестовые ошибки Windows (Unix команды, Path separator) |
+| **S-016** | 2026-02-27 | CI-FIX: Исправлены Go compilation errors (MaxScannerBuffer, NewWithExecutors) |
 | **S-015** | 2026-02-27 | MAJOR-3: Bilingual parsing (3 теста) |
 | **S-014** | 2026-02-27 | MAJOR-2: Type hints (3 файла) |
 | **S-013** | 2026-02-27 | MAJOR-1: Error handling в MCP tools (10 тестов) |
-| **S-012** | 2026-02-27 | Code review + critical fixes (3/3 исправлено) |
-| **S-011** | 2026-02-27 | FEAT-006: Web dashboard (6 задач, 5 тестов) |
 
 **Архив:** S-000 — S-008 → [docs/plans/](./docs/plans/)
 
@@ -173,9 +183,10 @@
 | Метрика | Цель | Текущее |
 |---------|------|---------|
 | Покрытие тестами | 80%+ | 91.93% ✅ |
-| Активные задачи | 1 | 1 (MAJOR-ISSUES-FIX: 5/8) |
-| Завершённые задачи | — | 46 (MVP P0+P1 + MAJOR-1,2,3) |
+| Активные задачи | 1 | 1 (CI-FIX: Windows тесты) |
+| Завершённые задачи | — | 48 (MVP P0+P1 + MAJOR + CI-FIX-1) |
 | MCP инструменты | 24+ | 27 ✅ |
 | Открытые ADR | — | 8 |
+| CI статус | 🟢 | 🔴 (28 тестов fail на Windows) |
 | Critical issues | 0 | 0 ✅ |
-| Major issues | 0 | 5 (в работе) |
+| Major issues | 0 | 5 (отложено) |
