@@ -9,6 +9,9 @@ from .qwen_executor import QwenExecutor, TaskTimeoutError
 from .validator import Validator
 from .git_wrapper import GitWrapper
 from .progress import ProgressTracker
+from .review.hybrid_executor import HybridExecutor
+from .review.aggregator import ReviewAggregator
+from .review.models import ReviewMarker
 
 
 class MaxIterationsExceededError(Exception):
@@ -58,6 +61,8 @@ class Orchestrator:
         self.validator = Validator()
         self.git = GitWrapper()
         self.progress = ProgressTracker(plan_file=plan.file_path)
+        self.reviewer = HybridExecutor()
+        self.aggregator = ReviewAggregator()
 
     def _extract_review_markers(self, output: str) -> List[str]:
         """Extract REVIEW markers from output.
@@ -70,6 +75,24 @@ class Orchestrator:
         """
         pattern = r'<!--\s*REVIEW:\s*(.+?)\s*-->'
         return re.findall(pattern, output, re.DOTALL)
+
+    def _apply_review_markers(self, markers: List[ReviewMarker]) -> int:
+        """Apply REVIEW markers from review report.
+
+        Args:
+            markers: List of review markers
+
+        Returns:
+            Number of markers applied
+        """
+        applied = 0
+        for marker in markers:
+            if self.auto_mode and not marker.critical:
+                # Auto-approve non-critical markers
+                self.git.apply_fix(marker.suggestion)
+                applied += 1
+                self.progress.log(f"Auto-applied marker: {marker.suggestion}")
+        return applied
 
     def _build_task_prompt(self, task: Task) -> str:
         """Build prompt for task execution.
@@ -136,7 +159,27 @@ class Orchestrator:
             if validation_result.success:
                 self.progress.validation_passed()
                 self.progress.task_completed(task.number, task.title)
+
+                # Run review system
+                self.progress.log("Running review system...")
+                git_diff = self.git.diff_head()
+                review_report = await self.reviewer.run_review(
+                    session_id=f"task-{task.number}",
+                    git_diff=git_diff,
+                )
                 
+                # Log review results
+                self.progress.log(f"Review: {review_report.summary}")
+                for result in review_report.results:
+                    status = "✅" if result.success else "❌"
+                    self.progress.log(f"  {status} {result.agent}: {len(result.findings)} findings")
+                
+                # Apply review markers (auto mode)
+                if self.auto_mode:
+                    applied = self._apply_review_markers(review_report.aggregated_markers)
+                    if applied > 0:
+                        self.progress.log(f"Auto-applied {applied} review markers")
+
                 # Git commit
                 commit_msg = f"feat: complete task {task.number}: {task.title}"
                 self.git.add(["."])

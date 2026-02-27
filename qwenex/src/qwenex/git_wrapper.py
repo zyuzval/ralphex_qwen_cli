@@ -146,3 +146,26 @@ class GitWrapper:
             GitError: If worktree creation fails
         """
         self._run(["worktree", "add", path, branch])
+
+    def diff_head(self) -> str:
+        """Get git diff from HEAD.
+
+        Returns:
+            Git diff string
+        """
+        result = self._run(["diff", "HEAD"])
+        return result.stdout
+
+    def apply_fix(self, suggestion: str) -> None:
+        """Apply a review marker fix (placeholder).
+
+        Args:
+            suggestion: Fix suggestion from review marker
+
+        Note:
+            This is a placeholder for future implementation.
+            Actual fix application requires AI assistance.
+        """
+        # TODO: Implement actual fix application
+        # For now, just log the suggestion
+        pass

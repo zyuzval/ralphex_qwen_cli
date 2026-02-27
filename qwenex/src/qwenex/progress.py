@@ -100,6 +100,22 @@ class ProgressTracker:
         """
         self.log(f"Committed: {message}")
 
+    def review_started(self) -> None:
+        """Log review system start."""
+        self.log("🔍 Starting review system...")
+
+    def review_completed(self, summary: str, results: list) -> None:
+        """Log review system completion.
+
+        Args:
+            summary: Review summary
+            results: List of review results
+        """
+        self.log(f"✅ Review: {summary}")
+        for result in results:
+            status = "✅" if result.success else "❌"
+            self.log(f"   {status} {result.agent}: {len(result.findings)} findings")
+
     def save(self) -> None:
         """Save progress to file."""
         progress_path = self._get_progress_path()
