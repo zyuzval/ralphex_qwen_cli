@@ -8,6 +8,7 @@ from typing import Optional
 
 from .plan_parser import parse_plan_file
 from .orchestrator import Orchestrator
+from .review.cli import review_command as review_cmd
 
 
 def parse_args(args: Optional[list] = None) -> argparse.Namespace:
@@ -139,6 +140,11 @@ async def main(args: Optional[list] = None) -> int:
 def entry_point():
     """Console script entry point."""
     sys.exit(asyncio.run(main()))
+
+
+def review_entry_point():
+    """Review command entry point."""
+    review_cmd()
 
 
 if __name__ == "__main__":

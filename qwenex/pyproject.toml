@@ -27,7 +27,8 @@ dev = [
 ]
 
 [project.scripts]
-qwenex = "qwenex.cli:main"
+qwenex = "qwenex.cli:entry_point"
+qwenex-review = "qwenex.cli:review_entry_point"
 
 [tool.setuptools.packages.find]
 where = ["src"]
