@@ -15,7 +15,7 @@
 
 **Миссия:** Сделать автономное выполнение планов доступным с локальными моделями, структурированными спецификациями и человеческим контролем через REVIEW-маркеры.
 
-**Стек:** Python 3.11+ · FastMCP · Qwen CLI · Git (subprocess)  
+**Стек:** Python 3.11+ · FastMCP · LLMProvider (Qwen/Ollama/OpenAI) · Git (subprocess)  
 **Точка входа:** `src/qwenex/cli.py` (CLI), `src/mcp/server.py` (MCP сервер)  
 **Критические ограничения:**
 - Поддержка Qwen Cloud API (приоритет)

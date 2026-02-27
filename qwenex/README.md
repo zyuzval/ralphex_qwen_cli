@@ -19,7 +19,7 @@
 - **MCP-инструменты** — интеграция с Cline, Roo Code, Continue через Model Context Protocol
 - **5-агентное ревью** — гибридное выполнение (2 параллельно + 3 последовательно)
 - **Свежий контекст** — каждая задача = новая сессия Qwen CLI (нет деградации)
-- **Локальные модели** — задел на Ollama для приватности и экономии
+- **Мульти-провайдер** — Qwen Cloud, Ollama, OpenAI через интерфейс LLMProvider
 - **Трансформация планов** — простые планы → полноценные FEAT/PROP спецификации (v0.2)
 
 ---
@@ -63,6 +63,7 @@ qwenex --init
 |----------|----------|
 | [BOOT.md](./BOOT.md) | Конституция проекта — архитектурные решения, правила |
 | [WAL.md](./WAL.md) | Текущий статус, задачи, прогресс разработки |
+| [docs/PROVIDERS.md](./docs/PROVIDERS.md) | LLM провайдеры: Qwen Cloud, Ollama, OpenAI |
 | [docs/COMPETITORS.md](./docs/COMPETITORS.md) | Анализ конкурентов (cmux, dmux, Sim, ralphex v0.18.0) |
 | [docs/DECISIONS.md](./docs/DECISIONS.md) | Архитектурные решения (ADR, 18 решений) |
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Детальная архитектура системы (Task Loop with Validation) |
