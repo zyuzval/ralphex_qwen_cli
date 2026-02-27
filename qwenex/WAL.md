@@ -17,10 +17,18 @@
 
 **[FEAT-007: Code Review qwenex]** — Полная проверка кода проекта
 
-- **Следующий шаг:** План создан, web dashboard запущен (http://localhost:8000)
+- **Следующий шаг:** mypy завершён (91 ошибка), web dashboard запущен (баг с данными)
 - **Статус:** 🔄 В работе
 - **Спека:** specs/FEAT-007.md
 - **Зависит от:** READY-1 ✅
+
+### Code Review Результаты
+
+| Инструмент | Статус | Найдено |
+|------------|--------|---------|
+| **mypy** | ✅ Завершён | 91 ошибка в 23 файлах |
+| **ruff** | ⏳ Ожидает | - |
+| **bandit** | ⏳ Ожидает | - |
 
 ### Web Dashboard
 
@@ -28,8 +36,8 @@
 |----------|----------|
 | **URL** | http://localhost:8000 |
 | **Статус** | 🟢 Запущен |
-| **PID** | 18084 |
-| **Команда** | `qwenex-web --port 8000` |
+| **Данные** | 🔴 Баг (Connected, нет данных) |
+| **Bug Report** | docs/BUG_WEB_DASHBOARD_NO_DATA.md |
 
 ### CI ошибки (Windows) — отложено:
 
@@ -61,6 +69,7 @@
 | **MAJOR-3** (Bilingual parsing) | 1 | 3 | ✅ |
 | **CI-FIX-1** (Go build errors) | 2 | - | ✅ |
 | **READY-1** (Локальная установка) | 1 | 5 | ✅ |
+| **FEAT-007** (Code Review) | 1 | 91 mypy errors | 🔄 В работе |
 
 **Детали:** [docs/plans/](./docs/plans/) · [CHANGELOG.md](../CHANGELOG.md)
 
@@ -150,11 +159,11 @@
 
 | Сессия | Дата | Что сделано |
 |--------|------|-------------|
+| **S-020** | 2026-02-27 | FEAT-007: Code Review (mypy: 91 ошибка) + Web Dashboard (баг с данными) |
 | **S-019** | 2026-02-27 | FEAT-007: Code Review plan + Web dashboard запущен |
 | **S-018** | 2026-02-27 | READY-1: Проверка локальной установки (все CLI работают, тесты passing) |
 | **S-017** | 2026-02-27 | CI-FIX: Исправлены тестовые ошибки Windows (Unix команды, Path separator) |
 | **S-016** | 2026-02-27 | CI-FIX: Исправлены Go compilation errors (MaxScannerBuffer, NewWithExecutors) |
-| **S-015** | 2026-02-27 | MAJOR-3: Bilingual parsing (3 теста) |
 
 **Архив:** S-000 — S-008 → [docs/plans/](./docs/plans/)
 
@@ -194,11 +203,12 @@
 |---------|------|---------|
 | Покрытие тестами | 80%+ | 91.93% ✅ |
 | Активные задачи | 1 | 1 (FEAT-007: Code Review) |
-| Завершённые задачи | — | 49 (MVP P0+P1 + MAJOR + CI-FIX-1 + READY-1) |
+| Завершённые задачи | — | 49 (MVP P0+P1) |
 | MCP инструменты | 24+ | 27 ✅ |
 | Открытые ADR | — | 8 |
 | CI статус (ralphex) | 🟢 | 🔴 (28 тестов fail на Windows, отложено) |
 | Critical issues | 0 | 0 ✅ |
-| Major issues | 0 | 5 (отложено) |
-| Web dashboard | 🟢 | Запущен (http://localhost:8000) |
+| Major issues | 0 | 5 (отложено) + 91 (mypy errors) |
+| Web dashboard | 🟢 | Запущен (баг: нет данных) |
+| Bug reports | 0 | 1 (BUG_WEB_DASHBOARD_NO_DATA) |
 | Готовность к релизу | 90% | ✅ Готов к локальному использованию |

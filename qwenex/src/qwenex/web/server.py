@@ -68,7 +68,7 @@ async def demo_status():
     from .broadcast import BroadcastService
     broadcast = BroadcastService.get_instance()
     if broadcast.current_update:
-        return {"status": "running", "update": broadcast.current_update.to_dict()}
+        return {"status": "running", "update": broadcast.current_update}
     return {"status": "idle"}
 
 
