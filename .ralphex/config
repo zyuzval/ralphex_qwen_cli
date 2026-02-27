@@ -1,0 +1,14 @@
+# ralphex configuration for Qwen native integration
+# Using Qwen Code directly instead of Claude
+
+# Enable Qwen
+qwen_enabled = true
+qwen_command = qwen
+qwen_args = --yolo --output-format stream-json
+qwen_error_patterns = rate limit,quota exceeded
+
+# Other defaults
+iteration_delay_ms = 2000
+task_retry_count = 1
+codex_enabled = true
+external_review_tool = codex

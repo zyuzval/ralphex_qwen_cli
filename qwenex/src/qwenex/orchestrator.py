@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from .models import Plan, Task
+from .plan_models import Plan, Task
 from .models.base import LLMProvider, ProviderConfig
 from .qwen_executor import QwenExecutor, TaskTimeoutError
 from .validator import Validator

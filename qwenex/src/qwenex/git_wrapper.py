@@ -156,6 +156,37 @@ class GitWrapper:
         result = self._run(["diff", "HEAD"])
         return result.stdout
 
+    def last_commit_hash(self) -> str:
+        """Get short hash of last commit.
+
+        Returns:
+            Short commit hash
+        """
+        result = self._run(["rev-parse", "--short", "HEAD"])
+        return result.stdout.strip()
+
+    def remove_worktree(self, path: str) -> None:
+        """Remove a worktree.
+
+        Args:
+            path: Path to worktree
+
+        Raises:
+            GitError: If removal fails
+        """
+        self._run(["worktree", "remove", "--force", path])
+
+    def merge(self, branch: str) -> None:
+        """Merge a branch.
+
+        Args:
+            branch: Branch name to merge
+
+        Raises:
+            GitError: If merge fails
+        """
+        self._run(["merge", branch])
+
     def apply_fix(self, suggestion: str) -> None:
         """Apply a review marker fix (placeholder).
 

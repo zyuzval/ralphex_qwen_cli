@@ -3,7 +3,7 @@
 import re
 from typing import List
 
-from .models import Plan, Task, Checkbox
+from .plan_models import Plan, Task, Checkbox
 
 
 def parse_plan(markdown: str, file_path: str) -> Plan:
