@@ -1,13 +1,13 @@
 """Data models for review system."""
 
-from dataclasses import dataclass, field
-from typing import Optional
 import re
+from dataclasses import dataclass
 
 
 @dataclass
 class ReviewAgent:
     """Configuration for a review agent."""
+
     name: str
     priority: int  # 1 (highest) - 5 (lowest)
     critical: bool  # Critical agents run in parallel
@@ -17,6 +17,7 @@ class ReviewAgent:
 @dataclass
 class ReviewResult:
     """Result from a single review agent."""
+
     agent: str
     success: bool
     findings: list[str]
@@ -28,16 +29,17 @@ class ReviewResult:
 @dataclass
 class ReviewMarker:
     """Parsed REVIEW marker from agent output."""
+
     suggestion: str
     reason: str
     awaits: str
     raw: str
     critical: bool = False
-    
+
     @classmethod
     def parse_from_output(cls, output: str) -> list["ReviewMarker"]:
         """Parse all REVIEW markers from agent output.
-        
+
         Supports both Russian and English formats:
         - Russian: <!-- REVIEW: comment — причина: reason — ждёт: awaits -->
         - English: <!-- REVIEW: comment - reason: reason - awaits: awaits -->
@@ -62,6 +64,7 @@ class ReviewMarker:
 @dataclass
 class ReviewReport:
     """Complete review report for a session."""
+
     session_id: str
     git_diff: str
     results: list[ReviewResult]

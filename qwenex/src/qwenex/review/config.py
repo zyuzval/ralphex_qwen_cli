@@ -2,7 +2,6 @@
 
 from .models import ReviewAgent
 
-
 # Prompt templates for each agent
 AGENT_PROMPTS = {
     "quality": """You are a code quality reviewer. Review the following git diff for:

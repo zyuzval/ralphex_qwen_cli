@@ -1,43 +1,46 @@
 """Ollama provider implementation for local models."""
 
 import json
-from typing import AsyncIterator, Any, Optional
+from collections.abc import AsyncIterator
+from typing import Any
 
-from .base import LLMProvider, ProviderConfig
+from .base import ProviderConfig
 
 
 class OllamaProvider:
     """Ollama provider for local LLM execution."""
-    
+
     def __init__(self, config: ProviderConfig):
         """Initialize Ollama provider.
-        
+
         Args:
             config: Provider configuration
+
         """
         self.config = config
         self.base_url = config.base_url or "http://localhost:11434"
-    
+
     async def complete(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         **kwargs: Any
     ) -> str:
         """Get completion from Ollama.
-        
+
         Args:
             prompt: User prompt
             system_prompt: Optional system prompt
             **kwargs: Additional parameters (temperature, num_predict)
-            
+
         Returns:
             Generated text response
+
         """
         import aiohttp
-        
+
         url = f"{self.base_url}/api/generate"
-        
+
         payload = {
             "model": self.config.model,
             "prompt": prompt,
@@ -47,38 +50,39 @@ class OllamaProvider:
                 "num_predict": kwargs.get("max_tokens", 2048)
             }
         }
-        
+
         if system_prompt:
             payload["system"] = system_prompt
-        
+
         timeout = aiohttp.ClientTimeout(total=self.config.timeout_sec)
-        
+
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(url, json=payload) as response:
                 response.raise_for_status()
                 data = await response.json()
                 return data["response"]
-    
+
     async def stream(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         **kwargs: Any
     ) -> AsyncIterator[str]:
         """Stream completion from Ollama.
-        
+
         Args:
             prompt: User prompt
             system_prompt: Optional system prompt
             **kwargs: Additional parameters
-            
+
         Yields:
             Chunks of generated text
+
         """
         import aiohttp
-        
+
         url = f"{self.base_url}/api/generate"
-        
+
         payload = {
             "model": self.config.model,
             "prompt": prompt,
@@ -88,12 +92,12 @@ class OllamaProvider:
                 "num_predict": kwargs.get("max_tokens", 2048)
             }
         }
-        
+
         if system_prompt:
             payload["system"] = system_prompt
-        
+
         timeout = aiohttp.ClientTimeout(total=self.config.timeout_sec)
-        
+
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(url, json=payload) as response:
                 response.raise_for_status()
@@ -107,17 +111,18 @@ class OllamaProvider:
                             break
                     except json.JSONDecodeError:
                         continue
-    
+
     async def check_health(self) -> bool:
         """Check if Ollama server is accessible.
-        
+
         Returns:
             True if Ollama is accessible
+
         """
         import aiohttp
-        
+
         url = f"{self.base_url}/api/tags"
-        
+
         try:
             timeout = aiohttp.ClientTimeout(total=5)
             async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -125,11 +130,12 @@ class OllamaProvider:
                     return response.status == 200
         except Exception:
             return False
-    
+
     def get_config(self) -> ProviderConfig:
         """Get provider configuration.
-        
+
         Returns:
             Provider configuration
+
         """
         return self.config

@@ -2,21 +2,22 @@
 
 import subprocess
 from dataclasses import dataclass
-from typing import List
 from pathlib import Path
 
 
 class GitError(Exception):
     """Git operation error."""
+
     pass
 
 
 @dataclass
 class GitStatus:
     """Git repository status."""
+
     is_clean: bool
     branch: str
-    changed_files: List[str]
+    changed_files: list[str]
 
     def __str__(self) -> str:
         if self.is_clean:
@@ -33,10 +34,11 @@ class GitWrapper:
 
         Args:
             repo_path: Path to git repository (default: current directory)
+
         """
         self.repo_path = Path(repo_path) if repo_path else Path.cwd()
 
-    def _run(self, args: List[str], check: bool = True) -> subprocess.CompletedProcess:
+    def _run(self, args: list[str], check: bool = True) -> subprocess.CompletedProcess:
         """Run git command.
 
         Args:
@@ -48,6 +50,7 @@ class GitWrapper:
 
         Raises:
             GitError: If command fails and check=True
+
         """
         try:
             result = subprocess.run(
@@ -70,6 +73,7 @@ class GitWrapper:
 
         Returns:
             GitStatus with current branch and changed files
+
         """
         # Get current branch
         branch_result = self._run(["rev-parse", "--abbrev-ref", "HEAD"])
@@ -95,11 +99,12 @@ class GitWrapper:
             changed_files=changed_files
         )
 
-    def add(self, files: List[str]) -> None:
+    def add(self, files: list[str]) -> None:
         """Stage files.
 
         Args:
             files: List of files to stage
+
         """
         self._run(["add"] + files)
 
@@ -111,21 +116,23 @@ class GitWrapper:
 
         Raises:
             GitError: If commit fails
+
         """
         self._run(["commit", "-m", message])
 
-    def ensure_git_ignored(self, patterns: List[str]) -> None:
+    def ensure_git_ignored(self, patterns: list[str]) -> None:
         """Ensure patterns are in .gitignore.
 
         Args:
             patterns: List of glob patterns to add
+
         """
         gitignore_path = self.repo_path / ".gitignore"
 
         # Read existing patterns
         existing = set()
         if gitignore_path.exists():
-            with open(gitignore_path, 'r') as f:
+            with open(gitignore_path) as f:
                 existing = set(line.strip() for line in f if line.strip())
 
         # Add new patterns
@@ -144,6 +151,7 @@ class GitWrapper:
 
         Raises:
             GitError: If worktree creation fails
+
         """
         self._run(["worktree", "add", path, branch])
 
@@ -152,6 +160,7 @@ class GitWrapper:
 
         Returns:
             Git diff string
+
         """
         result = self._run(["diff", "HEAD"])
         return result.stdout
@@ -161,6 +170,7 @@ class GitWrapper:
 
         Returns:
             Short commit hash
+
         """
         result = self._run(["rev-parse", "--short", "HEAD"])
         return result.stdout.strip()
@@ -173,6 +183,7 @@ class GitWrapper:
 
         Raises:
             GitError: If removal fails
+
         """
         self._run(["worktree", "remove", "--force", path])
 
@@ -184,6 +195,7 @@ class GitWrapper:
 
         Raises:
             GitError: If merge fails
+
         """
         self._run(["merge", branch])
 
@@ -196,6 +208,7 @@ class GitWrapper:
         Note:
             This is a placeholder for future implementation.
             Actual fix application requires AI assistance.
+
         """
         # TODO: Implement actual fix application
         # For now, just log the suggestion

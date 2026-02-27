@@ -4,19 +4,18 @@ import argparse
 import asyncio
 import signal
 import sys
-from typing import Optional
 
-from .plan_parser import parse_plan_file
-from .orchestrator import Orchestrator
 from .models.base import ProviderConfig
 from .models.factory import ProviderFactory
 from .models.fallback import FallbackProvider
-from .transformer import PlanTransformer
-from .spec_registry import get_next_spec_number
+from .orchestrator import Orchestrator
+from .plan_parser import parse_plan_file
 from .review.cli import review_command as review_cmd
+from .spec_registry import get_next_spec_number
+from .transformer import PlanTransformer
 
 
-def parse_args(args: Optional[list] = None) -> argparse.Namespace:
+def parse_args(args: list | None = None) -> argparse.Namespace:
     """Parse command line arguments.
 
     Args:
@@ -24,6 +23,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
 
     Returns:
         Parsed arguments namespace
+
     """
     parser = argparse.ArgumentParser(
         prog="qwenex",
@@ -142,7 +142,7 @@ def setup_signal_handlers():
     signal.signal(signal.SIGTERM, handler)
 
 
-async def main(args: Optional[list] = None) -> int:
+async def main(args: list | None = None) -> int:
     """Main entry point.
 
     Args:
@@ -150,6 +150,7 @@ async def main(args: Optional[list] = None) -> int:
 
     Returns:
         Exit code (0 for success, 1 for error)
+
     """
     parsed_args = parse_args(args)
 
@@ -195,7 +196,7 @@ async def main(args: Optional[list] = None) -> int:
         transformer = PlanTransformer(provider_config=provider_config)
 
         # Read original plan
-        with open(parsed_args.plan_file, 'r', encoding='utf-8') as f:
+        with open(parsed_args.plan_file, encoding='utf-8') as f:
             simple_plan = f.read()
 
         try:
@@ -253,7 +254,7 @@ async def main(args: Optional[list] = None) -> int:
         result = await orchestrator.run()
         print(f"\n{result}")
         print(f"Validation: {'PASSED' if result.validation_passed else 'FAILED'}")
-        
+
         if result.review_markers:
             print(f"\nReview markers found: {len(result.review_markers)}")
             for marker in result.review_markers:

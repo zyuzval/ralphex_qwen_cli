@@ -2,9 +2,8 @@
 
 import json
 import os
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
 
 from .models.base import ProviderConfig
 
@@ -12,13 +11,14 @@ from .models.base import ProviderConfig
 @dataclass
 class ProviderSettings:
     """Settings for a single provider."""
+
     name: str
     model: str
-    api_key: Optional[str] = None
-    base_url: Optional[str] = None
+    api_key: str | None = None
+    base_url: str | None = None
     timeout_sec: int = 600
-    extra: Dict[str, str] = field(default_factory=dict)
-    
+    extra: dict[str, str] = field(default_factory=dict)
+
     def to_provider_config(self) -> ProviderConfig:
         """Convert to ProviderConfig."""
         return ProviderConfig(
@@ -34,13 +34,14 @@ class ProviderSettings:
 @dataclass
 class QwenexConfig:
     """Main configuration for Qwenex."""
+
     default_provider: str = "qwen_cloud"
-    providers: Dict[str, ProviderSettings] = field(default_factory=dict)
+    providers: dict[str, ProviderSettings] = field(default_factory=dict)
     timeout_sec: int = 600
     max_retries: int = 2
     review_iterations: int = 3
-    
-    def get_provider(self, name: str) -> Optional[ProviderSettings]:
+
+    def get_provider(self, name: str) -> ProviderSettings | None:
         """Get provider settings by name."""
         return self.providers.get(name)
 
@@ -52,18 +53,19 @@ def get_config_path() -> Path:
     return config_dir / "config.json"
 
 
-def load_config(config_path: Optional[Path] = None) -> QwenexConfig:
+def load_config(config_path: Path | None = None) -> QwenexConfig:
     """Load configuration from file or environment.
-    
+
     Args:
         config_path: Optional path to config file
-        
+
     Returns:
         Loaded configuration
+
     """
     if config_path is None:
         config_path = get_config_path()
-    
+
     # Try to load from file
     if config_path.exists():
         try:
@@ -81,14 +83,14 @@ def load_config(config_path: Optional[Path] = None) -> QwenexConfig:
             )
         except (json.JSONDecodeError, TypeError) as e:
             print(f"Warning: Could not load config file: {e}")
-    
+
     # Fall back to environment variables
     default_provider = os.getenv("QWENEX_DEFAULT_PROVIDER", "qwen_cloud")
     model = os.getenv("QWENEX_MODEL", "qwen-max")
     api_key = os.getenv("QWENEX_API_KEY")
     base_url = os.getenv("QWENEX_BASE_URL")
     timeout = int(os.getenv("QWENEX_TIMEOUT", "600"))
-    
+
     providers = {}
     if api_key or base_url:
         providers[default_provider] = ProviderSettings(
@@ -98,23 +100,24 @@ def load_config(config_path: Optional[Path] = None) -> QwenexConfig:
             base_url=base_url,
             timeout_sec=timeout
         )
-    
+
     return QwenexConfig(
         default_provider=default_provider,
         providers=providers
     )
 
 
-def save_config(config: QwenexConfig, config_path: Optional[Path] = None) -> None:
+def save_config(config: QwenexConfig, config_path: Path | None = None) -> None:
     """Save configuration to file.
-    
+
     Args:
         config: Configuration to save
         config_path: Optional path to config file
+
     """
     if config_path is None:
         config_path = get_config_path()
-    
+
     data = {
         "default_provider": config.default_provider,
         "providers": {
@@ -125,6 +128,6 @@ def save_config(config: QwenexConfig, config_path: Optional[Path] = None) -> Non
         "max_retries": config.max_retries,
         "review_iterations": config.review_iterations
     }
-    
+
     config_path.parent.mkdir(exist_ok=True)
     config_path.write_text(json.dumps(data, indent=2), encoding="utf-8")

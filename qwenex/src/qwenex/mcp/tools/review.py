@@ -2,13 +2,11 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from fastmcp import FastMCP
 
 from qwenex.review.hybrid_executor import HybridExecutor
-from qwenex.review.models import ReviewReport, ReviewMarker
-from qwenex.review.aggregator import ReviewAggregator
+from qwenex.review.models import ReviewMarker, ReviewReport
 
 logger = logging.getLogger(__name__)
 
@@ -50,50 +48,50 @@ def apply_marker_fix(marker: ReviewMarker) -> None:
 @mcp.tool()
 async def launch_review(
     session_id: str,
-    agents: Optional[list[str]] = None,
+    agents: list[str] | None = None,
     timeout_min: int = 5,
 ) -> str:
-    """
-    Launch 5 review agents for a session.
-    
+    """Launch 5 review agents for a session.
+
     Args:
         session_id: Session identifier
         agents: Optional list of specific agents (default: all)
         timeout_min: Timeout per agent in minutes
-    
+
     Returns:
         Summary of review results
+
     """
     logger.info(f"Launching review for session {session_id}")
-    
+
     executor = HybridExecutor()
     executor.timeout_min = timeout_min
-    
+
     # TODO: Get git diff from session
     git_diff = ""
-    
+
     report = await executor.run_review(
         session_id=session_id,
         git_diff=git_diff,
         agents=agents,
     )
-    
+
     # Save report
     save_review_report(session_id, report)
-    
+
     return report.summary
 
 
 @mcp.tool()
 async def get_review_report(session_id: str) -> ReviewReport:
-    """
-    Get full review report for a session.
-    
+    """Get full review report for a session.
+
     Args:
         session_id: Session identifier
-    
+
     Returns:
         ReviewReport with all results
+
     """
     return load_review_report(session_id)
 
@@ -104,24 +102,24 @@ async def apply_review_marker(
     marker_index: int,
     approve: bool,
 ) -> str:
-    """
-    Apply or reject a REVIEW marker.
-    
+    """Apply or reject a REVIEW marker.
+
     Args:
         session_id: Session identifier
         marker_index: Index of marker in aggregated_markers list
         approve: True to approve, False to reject
-    
+
     Returns:
         Status message
+
     """
     report = load_review_report(session_id)
-    
+
     if marker_index >= len(report.aggregated_markers):
         return f"Error: Invalid marker index {marker_index}"
-    
+
     marker = report.aggregated_markers[marker_index]
-    
+
     if approve:
         apply_marker_fix(marker)
         return f"Applied: {marker.suggestion}"
@@ -134,22 +132,22 @@ async def resolve_conflicts(
     session_id: str,
     resolutions: dict[int, str],
 ) -> str:
-    """
-    Resolve conflicts between review agents.
-    
+    """Resolve conflicts between review agents.
+
     Args:
         session_id: Session identifier
         resolutions: Dict mapping conflict index to resolution
-    
+
     Returns:
         Status message
+
     """
     report = load_review_report(session_id)
-    
+
     for conflict_idx, resolution in resolutions.items():
         if conflict_idx < len(report.conflicts):
             logger.info(f"Conflict {conflict_idx} resolved: {resolution}")
-    
+
     save_review_report(session_id, report)
-    
+
     return f"Resolved {len(resolutions)} conflicts"

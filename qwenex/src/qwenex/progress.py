@@ -1,15 +1,17 @@
 """Progress tracking for Qwenex."""
 
 import os
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Callable, Awaitable, Dict, Any
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
 class ProgressEvent:
     """Single progress event."""
+
     timestamp: str
     message: str
 
@@ -20,10 +22,11 @@ class ProgressEvent:
 @dataclass
 class ProgressTracker:
     """Track and persist execution progress."""
+
     plan_file: str
     progress_dir: str = ".qwenex/progress"
-    events: List[ProgressEvent] = field(default_factory=list)
-    callback: Optional[Callable[[str, dict], Awaitable[None]]] = None
+    events: list[ProgressEvent] = field(default_factory=list)
+    callback: Callable[[str, dict], Awaitable[None]] | None = None
 
     def _get_progress_filename(self) -> str:
         """Generate progress filename from plan file."""
@@ -42,7 +45,7 @@ class ProgressTracker:
         """Get current timestamp."""
         return datetime.now().strftime("%H:%M:%S")
 
-    async def _notify(self, event_type: str, data: Dict[str, Any]) -> None:
+    async def _notify(self, event_type: str, data: dict[str, Any]) -> None:
         """Send notification via callback."""
         if self.callback:
             await self.callback(event_type, data)
@@ -52,6 +55,7 @@ class ProgressTracker:
 
         Args:
             message: Event message
+
         """
         event = ProgressEvent(
             timestamp=self._now(),
@@ -66,6 +70,7 @@ class ProgressTracker:
         Args:
             task_number: Task number (e.g., "1", "2.5")
             task_title: Task title
+
         """
         self.log(f"Started task {task_number}: {task_title}")
         await self._notify("task_started", {"task": f"{task_number}: {task_title}"})
@@ -76,15 +81,17 @@ class ProgressTracker:
         Args:
             task_number: Task number
             task_title: Task title
+
         """
         self.log(f"Completed task {task_number}: {task_title}")
         await self._notify("task_completed", {"task": f"{task_number}: {task_title}"})
 
-    def validation_started(self, commands: List[str]) -> None:
+    def validation_started(self, commands: list[str]) -> None:
         """Log validation start.
 
         Args:
             commands: Validation commands
+
         """
         cmds = ", ".join(commands) if commands else "none"
         self.log(f"Running validation: {cmds}")
@@ -98,6 +105,7 @@ class ProgressTracker:
 
         Args:
             reason: Failure reason
+
         """
         self.log(f"Validation failed: {reason}")
 
@@ -106,6 +114,7 @@ class ProgressTracker:
 
         Args:
             message: Commit message
+
         """
         self.log(f"Committed: {message}")
 
@@ -113,12 +122,13 @@ class ProgressTracker:
         """Log review system start."""
         self.log("🔍 Starting review system...")
 
-    def review_completed(self, summary: str, results: List[Any]) -> None:
+    def review_completed(self, summary: str, results: list[Any]) -> None:
         """Log review system completion.
 
         Args:
             summary: Review summary
             results: List of review results
+
         """
         self.log(f"✅ Review: {summary}")
         for result in results:
@@ -128,10 +138,10 @@ class ProgressTracker:
     def save(self) -> None:
         """Save progress to file."""
         progress_path = self._get_progress_path()
-        
+
         # Create directory if needed
         progress_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Write progress
         with open(progress_path, 'w', encoding='utf-8') as f:
             f.write(f"# Progress: {self.plan_file}\n")
@@ -143,12 +153,12 @@ class ProgressTracker:
     def load(self) -> None:
         """Load progress from file."""
         progress_path = self._get_progress_path()
-        
+
         if not progress_path.exists():
             return
-        
+
         self.events = []
-        with open(progress_path, 'r', encoding='utf-8') as f:
+        with open(progress_path, encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 # Skip comments and empty lines

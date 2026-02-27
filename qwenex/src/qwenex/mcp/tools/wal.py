@@ -1,8 +1,9 @@
 """WAL tools for MCP server."""
 
 import re
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 from fastmcp import FastMCP
 
 mcp = FastMCP("qwenex-wal")
@@ -12,11 +13,11 @@ WAL_PATH = Path("WAL.md")
 
 @mcp.tool()
 async def wal_start_session() -> str:
-    """
-    Начать новую сессию (S-NNN → S-NNN+1).
+    """Начать новую сессию (S-NNN → S-NNN+1).
 
     Returns:
         session_id: S-NNN
+
     """
     try:
         if not WAL_PATH.exists():
@@ -43,7 +44,7 @@ async def wal_start_session() -> str:
         WAL_PATH.write_text(new_content, encoding="utf-8")
 
         return f"S-{next_session:03d}"
-    except (IOError, OSError) as e:
+    except OSError as e:
         return f"Error: Failed to access WAL.md — {str(e)}"
     except Exception as e:
         return f"Error: Unexpected error — {str(e)}"
@@ -51,11 +52,11 @@ async def wal_start_session() -> str:
 
 @mcp.tool()
 async def wal_get_current_task() -> dict:
-    """
-    Получить текущую задачу из WAL.
+    """Получить текущую задачу из WAL.
 
     Returns:
         task: dict with id, title, status
+
     """
     try:
         if not WAL_PATH.exists():
@@ -78,7 +79,7 @@ async def wal_get_current_task() -> dict:
             }
 
         return {"error": "No current task found"}
-    except (IOError, OSError) as e:
+    except OSError as e:
         return {"error": f"Failed to read WAL.md — {str(e)}"}
     except Exception as e:
         return {"error": f"Unexpected error — {str(e)}"}
@@ -86,14 +87,14 @@ async def wal_get_current_task() -> dict:
 
 @mcp.tool()
 async def wal_list_tasks(status: str = "all") -> list:
-    """
-    Список задач по статусу.
+    """Список задач по статусу.
 
     Args:
         status: "all", "completed", "pending", "current"
 
     Returns:
         tasks: list of task dicts
+
     """
     try:
         if not WAL_PATH.exists():
@@ -122,7 +123,7 @@ async def wal_list_tasks(status: str = "all") -> list:
                 })
 
         return tasks
-    except (IOError, OSError) as e:
+    except OSError as e:
         return [{"error": f"Failed to read WAL.md — {str(e)}"}]
     except Exception as e:
         return [{"error": f"Unexpected error — {str(e)}"}]
@@ -130,8 +131,7 @@ async def wal_list_tasks(status: str = "all") -> list:
 
 @mcp.tool()
 async def wal_complete_task(task_id: str, notes: str) -> str:
-    """
-    Отметить задачу завершённой.
+    """Отметить задачу завершённой.
 
     Args:
         task_id: ID задачи (FEAT-001, DOC-001, etc.)
@@ -139,6 +139,7 @@ async def wal_complete_task(task_id: str, notes: str) -> str:
 
     Returns:
         success message
+
     """
     try:
         if not WAL_PATH.exists():
@@ -157,7 +158,7 @@ async def wal_complete_task(task_id: str, notes: str) -> str:
         WAL_PATH.write_text(content, encoding="utf-8")
 
         return f"Task {task_id} marked as completed"
-    except (IOError, OSError) as e:
+    except OSError as e:
         return f"Error: Failed to update WAL.md — {str(e)}"
     except Exception as e:
         return f"Error: Unexpected error — {str(e)}"
@@ -165,54 +166,54 @@ async def wal_complete_task(task_id: str, notes: str) -> str:
 
 @mcp.tool()
 async def wal_add_adr(adrid: str) -> str:
-    """
-    Добавить ADR ссылку.
-    
+    """Добавить ADR ссылку.
+
     Args:
         adrid: ADR ID (ADR-001, etc.)
-    
+
     Returns:
         success message
+
     """
     return f"ADR {adrid} added (placeholder)"
 
 
 @mcp.tool()
 async def wal_add_question(question: str, category: str) -> str:
-    """
-    Добавить открытый вопрос.
-    
+    """Добавить открытый вопрос.
+
     Args:
         question: Question text
         category: Category (research, bug, review)
-    
+
     Returns:
         success message
+
     """
     return f"Question added: {question} (category: {category})"
 
 
 @mcp.tool()
 async def wal_end_session() -> str:
-    """
-    Завершить сессию.
-    
+    """Завершить сессию.
+
     Returns:
         success message
+
     """
     return "Session ended (placeholder)"
 
 
 @mcp.tool()
 async def wal_log_change(type: str, description: str) -> str:
-    """
-    Зафиксировать изменение.
-    
+    """Зафиксировать изменение.
+
     Args:
         type: Change type (code, docs, tests)
         description: Change description
-    
+
     Returns:
         success message
+
     """
     return f"Logged {type} change: {description}"

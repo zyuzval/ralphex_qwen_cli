@@ -1,9 +1,9 @@
 """FastAPI web server for dashboard."""
 
-from pathlib import Path
 import asyncio
+from pathlib import Path
+
 from fastapi import FastAPI, WebSocket
-from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
@@ -19,9 +19,8 @@ _demo_task = None
 
 async def send_demo_progress():
     """Send demo progress updates for testing."""
-    from .broadcast import BroadcastService
     broadcast = BroadcastService.get_instance()
-    
+
     tasks = [
         "Запуск статического анализа...",
         "mypy: проверка типов...",
@@ -29,13 +28,13 @@ async def send_demo_progress():
         "bandit: проверка безопасности...",
         "Генерация отчёта...",
     ]
-    
+
     for i, task in enumerate(tasks):
         progress = (i + 1) * 20
         await broadcast.send_progress(progress, task)
         await broadcast.send_log(task, "info")
         await asyncio.sleep(2)
-    
+
     await broadcast.send_log("Code review завершён!", "success")
 
 
@@ -65,7 +64,6 @@ async def start_demo():
 @app.get("/demo/status")
 async def demo_status():
     """Get current demo status."""
-    from .broadcast import BroadcastService
     broadcast = BroadcastService.get_instance()
     if broadcast.current_update:
         return {"status": "running", "update": broadcast.current_update}
@@ -77,7 +75,7 @@ async def websocket_endpoint(websocket: WebSocket):
     """WebSocket for real-time updates."""
     await websocket.accept()
     await websocket.send_json({"type": "connected"})
-    
+
     # Keep connection alive
     try:
         while True:

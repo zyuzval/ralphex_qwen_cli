@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 from typing import Any
+
 from fastmcp import FastMCP
 
 mcp = FastMCP("qwenex-config")
@@ -14,9 +15,10 @@ VALID_KEYS = {"auto_mode", "timeout", "max_iterations", "model", "provider"}
 
 def get_config() -> dict:
     """Load config from file.
-    
+
     Returns:
         Config dict
+
     """
     if not CONFIG_PATH.exists():
         return {
@@ -25,8 +27,8 @@ def get_config() -> dict:
             "max_iterations": 3,
             "model": "qwen-max"
         }
-    
-    with open(CONFIG_PATH, 'r') as f:
+
+    with open(CONFIG_PATH) as f:
         return json.load(f)
 
 
@@ -39,24 +41,25 @@ def set_config_value(key: str, value: Any) -> bool:
 
     Returns:
         True if successful
+
     """
     config = get_config()
     config[key] = value
-    
+
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_PATH, 'w') as f:
         json.dump(config, f, indent=2)
-    
+
     return True
 
 
 @mcp.tool()
 async def config_get() -> dict:
-    """
-    Получить конфигурацию.
-    
+    """Получить конфигурацию.
+
     Returns:
         config: dict with settings
+
     """
     try:
         return get_config()
@@ -66,8 +69,7 @@ async def config_get() -> dict:
 
 @mcp.tool()
 async def config_set(key: str, value: Any) -> str:
-    """
-    Установить значение конфигурации.
+    """Установить значение конфигурации.
 
     Args:
         key: Config key (auto_mode, timeout, max_iterations, model, provider)
@@ -75,14 +77,15 @@ async def config_set(key: str, value: Any) -> str:
 
     Returns:
         success message
+
     """
     if key not in VALID_KEYS:
         return f"Error: Invalid key '{key}'. Valid keys: {VALID_KEYS}"
-    
+
     try:
         set_config_value(key, value)
         return f"Updated {key} = {value}"
-    except (IOError, OSError) as e:
+    except OSError as e:
         return f"Error: Failed to write config — {str(e)}"
     except Exception as e:
         return f"Error: Failed to update config — {str(e)}"

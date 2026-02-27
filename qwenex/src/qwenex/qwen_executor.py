@@ -2,7 +2,8 @@
 
 import asyncio
 import json
-from typing import AsyncGenerator, Dict, Any, Optional
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from .models.base import LLMProvider, ProviderConfig
 from .models.factory import ProviderFactory
@@ -10,10 +11,11 @@ from .models.factory import ProviderFactory
 
 class TaskTimeoutError(Exception):
     """Raised when a task exceeds the timeout."""
+
     pass
 
 
-def parse_event(line: str) -> Dict[str, Any]:
+def parse_event(line: str) -> dict[str, Any]:
     """Parse a stream-json event line.
 
     Args:
@@ -21,6 +23,7 @@ def parse_event(line: str) -> Dict[str, Any]:
 
     Returns:
         Parsed event dictionary
+
     """
     return json.loads(line.strip())
 
@@ -30,8 +33,8 @@ class QwenExecutor:
 
     def __init__(
         self,
-        provider: Optional[LLMProvider] = None,
-        provider_config: Optional[ProviderConfig] = None,
+        provider: LLMProvider | None = None,
+        provider_config: ProviderConfig | None = None,
         timeout_min: int = 10
     ):
         """Initialize executor.
@@ -40,9 +43,10 @@ class QwenExecutor:
             provider: LLM provider instance (optional)
             provider_config: Provider configuration (creates provider)
             timeout_min: Timeout in minutes for each task
+
         """
         self.timeout_min = timeout_min
-        
+
         if provider is not None:
             self.provider = provider
         elif provider_config is not None:
@@ -57,9 +61,9 @@ class QwenExecutor:
     async def run_task(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         stream: bool = True
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Run a task using the LLM provider.
 
         Args:
@@ -72,6 +76,7 @@ class QwenExecutor:
 
         Raises:
             TaskTimeoutError: If task exceeds timeout
+
         """
         try:
             if stream:
@@ -89,8 +94,8 @@ class QwenExecutor:
                     "type": "complete",
                     "content": response
                 }
-                
-        except asyncio.TimeoutError:
+
+        except TimeoutError:
             raise TaskTimeoutError(
                 f"Task exceeded {self.timeout_min} minutes timeout"
             )

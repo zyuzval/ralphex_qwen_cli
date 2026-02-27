@@ -2,15 +2,15 @@
 
 import asyncio
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
 class ValidationResult:
     """Result of validation."""
+
     success: bool
     output: str
-    commands: List[str]
+    commands: list[str]
 
     def __str__(self) -> str:
         status = "PASS" if self.success else "FAIL"
@@ -20,7 +20,7 @@ class ValidationResult:
 class Validator:
     """Run validation commands."""
 
-    async def run(self, commands: List[str]) -> ValidationResult:
+    async def run(self, commands: list[str]) -> ValidationResult:
         """Run validation commands.
 
         Args:
@@ -28,6 +28,7 @@ class Validator:
 
         Returns:
             ValidationResult with success status and output
+
         """
         if not commands:
             return ValidationResult(

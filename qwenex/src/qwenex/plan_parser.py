@@ -1,9 +1,8 @@
 """Parse markdown plan files."""
 
 import re
-from typing import List
 
-from .plan_models import Plan, Task, Checkbox
+from .plan_models import Checkbox, Plan, Task
 
 
 def parse_plan(markdown: str, file_path: str) -> Plan:
@@ -15,6 +14,7 @@ def parse_plan(markdown: str, file_path: str) -> Plan:
 
     Returns:
         Parsed Plan object
+
     """
     lines = markdown.split('\n')
 
@@ -26,7 +26,7 @@ def parse_plan(markdown: str, file_path: str) -> Plan:
             break
 
     # Parse validation commands
-    validation_commands: List[str] = []
+    validation_commands: list[str] = []
     in_validation = False
     for line in lines:
         if line.startswith('## Validation Commands'):
@@ -41,7 +41,7 @@ def parse_plan(markdown: str, file_path: str) -> Plan:
                     validation_commands.append(cmd)
 
     # Parse tasks
-    tasks: List[Task] = []
+    tasks: list[Task] = []
     current_task: Task | None = None
 
     task_pattern = re.compile(r'^### Task\s+([^\s:]+):\s*(.+)$')
@@ -98,7 +98,8 @@ def parse_plan_file(file_path: str) -> Plan:
 
     Returns:
         Parsed Plan object
+
     """
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding='utf-8') as f:
         markdown = f.read()
     return parse_plan(markdown, file_path)

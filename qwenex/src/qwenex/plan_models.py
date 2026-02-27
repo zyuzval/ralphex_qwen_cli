@@ -1,12 +1,12 @@
 """Models for Qwenex plan execution."""
 
 from dataclasses import dataclass, field
-from typing import List
 
 
 @dataclass
 class Checkbox:
     """Checkbox in a task."""
+
     text: str
     completed: bool = False
 
@@ -20,9 +20,10 @@ class Checkbox:
 @dataclass
 class Task:
     """Task in a plan."""
+
     number: str
     title: str
-    checkboxes: List[Checkbox] = field(default_factory=list)
+    checkboxes: list[Checkbox] = field(default_factory=list)
 
     @property
     def incomplete_count(self) -> int:
@@ -38,10 +39,11 @@ class Task:
 @dataclass
 class Plan:
     """Plan file."""
+
     title: str
     file_path: str
-    validation_commands: List[str] = field(default_factory=list)
-    tasks: List[Task] = field(default_factory=list)
+    validation_commands: list[str] = field(default_factory=list)
+    tasks: list[Task] = field(default_factory=list)
     current_task_index: int = 0
 
     @property
