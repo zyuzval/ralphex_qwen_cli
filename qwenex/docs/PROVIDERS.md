@@ -90,6 +90,47 @@ qwenex specs/FEAT-001.md --provider ollama --model llama3.1:8b
 
 # Использовать OpenAI с переопределением
 qwenex specs/FEAT-001.md --provider openai --model gpt-4o --api-key sk-xxx
+
+# Fallback режим (Ollama с облачным резервом)
+qwenex specs/FEAT-001.md --provider ollama --fallback qwen_cloud
+```
+
+## Fallback режим
+
+Автоматический фоллбэк при недоступности основного провайдера:
+
+```bash
+# Ollama с фоллбэком на Qwen Cloud
+qwenex plan.md --provider ollama --fallback qwen_cloud
+
+# Локальная модель с облачным фоллбэком
+qwenex plan.md --provider ollama --model llama3.1:8b --fallback qwen_cloud
+```
+
+**Поведение:**
+1. Проверяется доступность Ollama (GET /api/tags)
+2. Если доступен — используется Ollama
+3. Если недоступен — автоматический переход на Qwen Cloud
+4. Все последующие запросы идут через фоллбэк
+
+## Ollama CLI
+
+Прямое взаимодействие с Ollama:
+
+```bash
+# Проверка доступности
+qwenex-ollama --check
+
+# Список моделей
+qwenex-ollama --list
+
+# Единичный запрос
+qwenex-ollama "What is Python?"
+
+# Интерактивный режим
+qwenex-ollama
+> Hello!
+> quit
 ```
 
 ## Добавление нового провайдера
