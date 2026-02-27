@@ -16,7 +16,6 @@ def test_mcp_tools_registered():
     """Test MCP tools are registered"""
     count = get_mcp_tools_count()
     
-    # Should have tools from all modules
-    # For now, just check it returns a number
+    # WAL(8) + Git(7) + Qwen(3) + Config(2) + Review(4) = 24
     assert isinstance(count, int)
-    assert count >= 0
+    assert count >= 24
