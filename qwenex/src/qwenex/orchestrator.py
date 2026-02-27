@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from .models import Plan, Task
+from .models.base import LLMProvider, ProviderConfig
 from .qwen_executor import QwenExecutor, TaskTimeoutError
 from .validator import Validator
 from .git_wrapper import GitWrapper
@@ -40,6 +41,8 @@ class Orchestrator:
     def __init__(
         self,
         plan: Plan,
+        provider: Optional[LLMProvider] = None,
+        provider_config: Optional[ProviderConfig] = None,
         max_iterations: int = 3,
         timeout_min: int = 10,
         auto_mode: bool = False,
@@ -48,6 +51,8 @@ class Orchestrator:
 
         Args:
             plan: Plan to execute
+            provider: LLM provider instance (optional)
+            provider_config: Provider configuration (optional)
             max_iterations: Max retry iterations per task
             timeout_min: Timeout per task in minutes
             auto_mode: Auto-approve review markers
@@ -57,7 +62,11 @@ class Orchestrator:
         self.timeout_min = timeout_min
         self.auto_mode = auto_mode
 
-        self.executor = QwenExecutor(timeout_min=timeout_min)
+        self.executor = QwenExecutor(
+            provider=provider,
+            provider_config=provider_config,
+            timeout_min=timeout_min
+        )
         self.validator = Validator()
         self.git = GitWrapper()
         self.progress = ProgressTracker(plan_file=plan.file_path)
