@@ -37,7 +37,8 @@ class ReviewMarker:
     @classmethod
     def parse_from_output(cls, output: str) -> list["ReviewMarker"]:
         """Parse all REVIEW markers from agent output."""
-        pattern = r'<!-- REVIEW: ([^—]+) — причина: ([^—]+) — ждёт: ([^→]+) -->'
+        # Match single-line REVIEW markers
+        pattern = r'<!-- REVIEW: ([^-]+) — причина: ([^-]+) — ждёт: ([^-]+) -->'
         markers = []
         
         for match in re.finditer(pattern, output):
