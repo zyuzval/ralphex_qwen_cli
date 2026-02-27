@@ -8,6 +8,8 @@ mcp = FastMCP("qwenex-config")
 
 CONFIG_PATH = Path(".qwenex/config.json")
 
+VALID_KEYS = {"auto_mode", "timeout", "max_iterations", "model", "provider"}
+
 
 def get_config() -> dict:
     """Load config from file.
@@ -65,16 +67,21 @@ async def config_get() -> dict:
 async def config_set(key: str, value) -> str:
     """
     Установить значение конфигурации.
-    
+
     Args:
-        key: Config key (auto_mode, timeout, max_iterations, model)
+        key: Config key (auto_mode, timeout, max_iterations, model, provider)
         value: Config value
-    
+
     Returns:
         success message
     """
+    if key not in VALID_KEYS:
+        return f"Error: Invalid key '{key}'. Valid keys: {VALID_KEYS}"
+    
     try:
         set_config_value(key, value)
         return f"Updated {key} = {value}"
+    except (IOError, OSError) as e:
+        return f"Error: Failed to write config — {str(e)}"
     except Exception as e:
         return f"Error: Failed to update config — {str(e)}"
