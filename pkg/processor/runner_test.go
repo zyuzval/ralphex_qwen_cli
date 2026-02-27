@@ -201,7 +201,7 @@ func TestRunner_MaxExternalIterations_ExplicitLimit(t *testing.T) {
 		Mode: processor.ModeCodexOnly, MaxIterations: 50,
 		MaxExternalIterations: 2, CodexEnabled: true, AppConfig: testAppConfig(t),
 	}
-	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, nil, &status.PhaseHolder{})
+	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, &status.PhaseHolder{})
 	err := r.Run(context.Background())
 
 	require.NoError(t, err)
@@ -227,7 +227,7 @@ func TestRunner_MaxExternalIterations_DerivedFormula(t *testing.T) {
 		Mode: processor.ModeCodexOnly, MaxIterations: 15,
 		MaxExternalIterations: 0, CodexEnabled: true, AppConfig: testAppConfig(t),
 	}
-	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, nil, &status.PhaseHolder{})
+	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, &status.PhaseHolder{})
 	err := r.Run(context.Background())
 
 	require.NoError(t, err)
@@ -1989,7 +1989,7 @@ func TestRunner_NextPlanTaskPosition(t *testing.T) {
 			codex := newMockExecutor(nil)
 
 			cfg := processor.Config{PlanFile: planFile}
-			r := processor.NewWithExecutors(cfg, log, claude, codex, nil, nil, &status.PhaseHolder{})
+			r := processor.NewWithExecutors(cfg, log, claude, codex, nil, &status.PhaseHolder{})
 
 			assert.Equal(t, tc.expected, r.TestNextPlanTaskPosition())
 		})
@@ -2002,7 +2002,7 @@ func TestRunner_NextPlanTaskPosition_MissingFile(t *testing.T) {
 	codex := newMockExecutor(nil)
 
 	cfg := processor.Config{PlanFile: "/nonexistent/plan.md"}
-	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, nil, &status.PhaseHolder{})
+	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, &status.PhaseHolder{})
 
 	assert.Equal(t, 0, r.TestNextPlanTaskPosition(), "missing file should return 0")
 }
@@ -2013,7 +2013,7 @@ func TestRunner_NextPlanTaskPosition_EmptyPlanFile(t *testing.T) {
 	codex := newMockExecutor(nil)
 
 	cfg := processor.Config{PlanFile: ""}
-	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, nil, &status.PhaseHolder{})
+	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, &status.PhaseHolder{})
 
 	assert.Equal(t, 0, r.TestNextPlanTaskPosition(), "empty plan file path should return 0")
 }
@@ -2044,7 +2044,7 @@ func TestRunner_TaskPhase_UsesPlanTaskPosition(t *testing.T) {
 	codex := newMockExecutor(nil)
 
 	cfg := processor.Config{Mode: processor.ModeTasksOnly, PlanFile: planFile, MaxIterations: 50, AppConfig: testAppConfig(t)}
-	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, nil, &status.PhaseHolder{})
+	r := processor.NewWithExecutors(cfg, log, claude, codex, nil, &status.PhaseHolder{})
 	err := r.Run(context.Background())
 
 	require.NoError(t, err)
