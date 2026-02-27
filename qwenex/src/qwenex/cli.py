@@ -11,6 +11,8 @@ from .orchestrator import Orchestrator
 from .models.base import ProviderConfig
 from .models.factory import ProviderFactory
 from .models.fallback import FallbackProvider
+from .transformer import PlanTransformer
+from .spec_registry import get_next_spec_number
 from .review.cli import review_command as review_cmd
 
 
@@ -106,6 +108,27 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Fallback provider (e.g., qwen_cloud when using ollama)"
     )
 
+    parser.add_argument(
+        "--transform",
+        action="store_true",
+        help="Transform simple plan to FEAT/PROP before execution"
+    )
+
+    parser.add_argument(
+        "--spec-type",
+        type=str,
+        default="FEAT",
+        choices=["FEAT", "PROP"],
+        help="Type of specification to generate"
+    )
+
+    parser.add_argument(
+        "--spec-number",
+        type=str,
+        default=None,
+        help="Specification number (e.g., 001)"
+    )
+
     return parser.parse_args(args)
 
 
@@ -145,6 +168,46 @@ async def main(args: Optional[list] = None) -> int:
     except Exception as e:
         print(f"Error parsing plan: {e}")
         return 1
+
+    # Transform if requested
+    if parsed_args.transform:
+        # Generate spec number if not provided
+        if parsed_args.spec_number:
+            spec_number = parsed_args.spec_number
+        else:
+            spec_number = get_next_spec_number("specs", parsed_args.spec_type)
+            print(f"Auto-generated spec number: {parsed_args.spec_type}-{spec_number}")
+        
+        print(f"Transforming plan to {parsed_args.spec_type}-{spec_number}...")
+        
+        transformer = PlanTransformer(provider_config=provider_config)
+        
+        # Read original plan
+        with open(parsed_args.plan_file, 'r', encoding='utf-8') as f:
+            simple_plan = f.read()
+        
+        try:
+            spec = await transformer.transform(
+                simple_plan,
+                spec_number,
+                spec_type=parsed_args.spec_type
+            )
+            
+            # Save transformed spec
+            import os
+            os.makedirs("specs", exist_ok=True)
+            spec_path = f"specs/{parsed_args.spec_type}-{spec_number}.md"
+            with open(spec_path, 'w', encoding='utf-8') as f:
+                f.write(spec)
+            
+            print(f"Generated: {spec_path}")
+            
+            # Update plan_file to use transformed spec
+            parsed_args.plan_file = spec_path
+            
+        except Exception as e:
+            print(f"Transform error: {e}")
+            return 1
 
     # Create provider configuration
     provider_name = parsed_args.provider or "qwen_cloud"
