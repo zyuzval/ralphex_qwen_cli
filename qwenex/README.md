@@ -64,6 +64,7 @@ qwenex --init
 |----------|----------|
 | [BOOT.md](./BOOT.md) | Конституция проекта — архитектурные решения, правила |
 | [WAL.md](./WAL.md) | Текущий статус, задачи, прогресс разработки |
+| [docs/TRANSFORM.md](./docs/TRANSFORM.md) | Трансформация планов в FEAT/PROP спецификации |
 | [docs/PROVIDERS.md](./docs/PROVIDERS.md) | LLM провайдеры: Qwen Cloud, Ollama, OpenAI |
 | [docs/COMPETITORS.md](./docs/COMPETITORS.md) | Анализ конкурентов (cmux, dmux, Sim, ralphex v0.18.0) |
 | [docs/DECISIONS.md](./docs/DECISIONS.md) | Архитектурные решения (ADR, 18 решений) |
