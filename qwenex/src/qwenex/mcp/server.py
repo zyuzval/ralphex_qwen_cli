@@ -3,7 +3,7 @@
 from fastmcp import FastMCP
 
 # Import all tool modules to register them
-from .tools import wal, git, qwen, review, config
+from .tools import wal, git, qwen, review, config, ollama
 
 
 def create_mcp_server() -> FastMCP:
@@ -49,5 +49,8 @@ def get_mcp_tools_count() -> int:
     # Review tools (4) - from FEAT-002
     count += 4  # launch_review, get_review_report,
                 # apply_review_marker, resolve_conflicts
-    
+
+    # Ollama tools (3) - from FEAT-005
+    count += 3  # ollama_check, ollama_list_models, ollama_run
+
     return count
