@@ -10,6 +10,7 @@ from .plan_parser import parse_plan_file
 from .orchestrator import Orchestrator
 from .models.base import ProviderConfig
 from .models.factory import ProviderFactory
+from .models.fallback import FallbackProvider
 from .review.cli import review_command as review_cmd
 
 
@@ -98,6 +99,13 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Base URL for API (overrides config)"
     )
 
+    parser.add_argument(
+        "--fallback",
+        type=str,
+        default=None,
+        help="Fallback provider (e.g., qwen_cloud when using ollama)"
+    )
+
     return parser.parse_args(args)
 
 
@@ -141,7 +149,7 @@ async def main(args: Optional[list] = None) -> int:
     # Create provider configuration
     provider_name = parsed_args.provider or "qwen_cloud"
     model = parsed_args.model or "qwen-max"
-    
+
     provider_config = ProviderConfig(
         name=provider_name,
         model=model,
@@ -149,11 +157,21 @@ async def main(args: Optional[list] = None) -> int:
         base_url=parsed_args.base_url,
         timeout_sec=parsed_args.timeout * 60
     )
-    
-    # Create provider
+
+    # Create provider with optional fallback
     try:
-        provider = ProviderFactory.create(provider_name, provider_config)
-        print(f"Using provider: {provider_name} (model: {model})")
+        if parsed_args.fallback:
+            fallback_name = parsed_args.fallback
+            fallback_config = ProviderConfig(
+                name=fallback_name,
+                model="qwen-max" if fallback_name == "qwen_cloud" else "llama3.1:8b",
+                api_key=parsed_args.api_key,
+            )
+            provider = FallbackProvider(provider_config, fallback_config)
+            print(f"Using provider: {provider_name} with {fallback_name} fallback")
+        else:
+            provider = ProviderFactory.create(provider_name, provider_config)
+            print(f"Using provider: {provider_name} (model: {model})")
     except ValueError as e:
         print(f"Error: {e}")
         return 1
