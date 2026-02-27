@@ -17,7 +17,7 @@
 
 **[MAJOR-ISSUES-FIX: Code Quality]** — Исправление 8 major issues из code review
 
-- **Следующий шаг:** 2/8 исправлено (Error handling, Type hints), 6 осталось
+- **Следующий шаг:** 3/8 исправлено (Error handling, Type hints, Bilingual parsing), 5 осталось
 - **Статус:** 🔄 В работе
 - **Спека:** docs/plans/2026-02-27-major-issues-fix.md
 - **Зависит от:** CODE-REVIEW ✅
@@ -40,6 +40,7 @@
 | **CODE-REVIEW** (Critical fixes) | 1 | 20 | ✅ |
 | **MAJOR-1** (Error handling) | 1 | 10 | ✅ |
 | **MAJOR-2** (Type hints) | 1 | - | ✅ |
+| **MAJOR-3** (Bilingual parsing) | 1 | 3 | ✅ |
 
 **Детали:** [docs/plans/](./docs/plans/) · [CHANGELOG.md](../CHANGELOG.md)
 
@@ -129,11 +130,11 @@
 
 | Сессия | Дата | Что сделано |
 |--------|------|-------------|
+| **S-015** | 2026-02-27 | MAJOR-3: Bilingual parsing (3 теста) |
 | **S-014** | 2026-02-27 | MAJOR-2: Type hints (3 файла) |
 | **S-013** | 2026-02-27 | MAJOR-1: Error handling в MCP tools (10 тестов) |
 | **S-012** | 2026-02-27 | Code review + critical fixes (3/3 исправлено) |
 | **S-011** | 2026-02-27 | FEAT-006: Web dashboard (6 задач, 5 тестов) |
-| **S-010** | 2026-02-27 | FEAT-004: Трансформация планов (6 задач, 8 тестов) |
 
 **Архив:** S-000 — S-008 → [docs/plans/](./docs/plans/)
 
@@ -172,9 +173,9 @@
 | Метрика | Цель | Текущее |
 |---------|------|---------|
 | Покрытие тестами | 80%+ | 91.93% ✅ |
-| Активные задачи | 1 | 1 (MAJOR-ISSUES-FIX: 6/8) |
-| Завершённые задачи | — | 45 (MVP P0+P1 + MAJOR-1,2) |
+| Активные задачи | 1 | 1 (MAJOR-ISSUES-FIX: 5/8) |
+| Завершённые задачи | — | 46 (MVP P0+P1 + MAJOR-1,2,3) |
 | MCP инструменты | 24+ | 27 ✅ |
 | Открытые ADR | — | 8 |
 | Critical issues | 0 | 0 ✅ |
-| Major issues | 0 | 6 (в работе) |
+| Major issues | 0 | 5 (в работе) |
