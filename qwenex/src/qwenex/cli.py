@@ -8,6 +8,8 @@ from typing import Optional
 
 from .plan_parser import parse_plan_file
 from .orchestrator import Orchestrator
+from .models.base import ProviderConfig
+from .models.factory import ProviderFactory
 from .review.cli import review_command as review_cmd
 
 
@@ -68,6 +70,34 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Disable colored output"
     )
 
+    parser.add_argument(
+        "--provider",
+        type=str,
+        default=None,
+        help="LLM provider (qwen_cloud, ollama, openai)"
+    )
+
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="Model name to use"
+    )
+
+    parser.add_argument(
+        "--api-key",
+        type=str,
+        default=None,
+        help="API key (overrides config)"
+    )
+
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default=None,
+        help="Base URL for API (overrides config)"
+    )
+
     return parser.parse_args(args)
 
 
@@ -108,9 +138,30 @@ async def main(args: Optional[list] = None) -> int:
         print(f"Error parsing plan: {e}")
         return 1
 
+    # Create provider configuration
+    provider_name = parsed_args.provider or "qwen_cloud"
+    model = parsed_args.model or "qwen-max"
+    
+    provider_config = ProviderConfig(
+        name=provider_name,
+        model=model,
+        api_key=parsed_args.api_key,
+        base_url=parsed_args.base_url,
+        timeout_sec=parsed_args.timeout * 60
+    )
+    
+    # Create provider
+    try:
+        provider = ProviderFactory.create(provider_name, provider_config)
+        print(f"Using provider: {provider_name} (model: {model})")
+    except ValueError as e:
+        print(f"Error: {e}")
+        return 1
+
     # Create orchestrator
     orchestrator = Orchestrator(
         plan=plan,
+        provider=provider,
         max_iterations=parsed_args.max_iterations,
         timeout_min=parsed_args.timeout,
         auto_mode=parsed_args.auto,
