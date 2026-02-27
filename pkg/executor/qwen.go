@@ -10,6 +10,9 @@ import (
 	"strings"
 )
 
+// MaxScannerBuffer is the maximum buffer size for scanner (64MB).
+const MaxScannerBuffer = 64 * 1024 * 1024
+
 // QwenExecutor runs qwen CLI commands with streaming JSON parsing.
 type QwenExecutor struct {
 	Command       string            // command to execute, defaults to "qwen"
