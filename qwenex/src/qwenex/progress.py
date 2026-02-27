@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List
+from typing import List, Optional, Callable, Awaitable
 from pathlib import Path
 
 
@@ -23,6 +23,7 @@ class ProgressTracker:
     plan_file: str
     progress_dir: str = ".qwenex/progress"
     events: List[ProgressEvent] = field(default_factory=list)
+    callback: Optional[Callable[[str, dict], Awaitable[None]]] = None
 
     def _get_progress_filename(self) -> str:
         """Generate progress filename from plan file."""
@@ -41,7 +42,12 @@ class ProgressTracker:
         """Get current timestamp."""
         return datetime.now().strftime("%H:%M:%S")
 
-    def log(self, message: str) -> None:
+    async def _notify(self, event_type: str, data: dict) -> None:
+        """Send notification via callback."""
+        if self.callback:
+            await self.callback(event_type, data)
+
+    async def log(self, message: str) -> None:
         """Log a progress event.
 
         Args:
@@ -52,8 +58,9 @@ class ProgressTracker:
             message=message
         )
         self.events.append(event)
+        await self._notify("log", {"message": message, "level": "info"})
 
-    def task_started(self, task_number: str, task_title: str) -> None:
+    async def task_started(self, task_number: str, task_title: str) -> None:
         """Log task start.
 
         Args:
@@ -61,8 +68,9 @@ class ProgressTracker:
             task_title: Task title
         """
         self.log(f"Started task {task_number}: {task_title}")
+        await self._notify("task_started", {"task": f"{task_number}: {task_title}"})
 
-    def task_completed(self, task_number: str, task_title: str) -> None:
+    async def task_completed(self, task_number: str, task_title: str) -> None:
         """Log task completion.
 
         Args:
@@ -70,6 +78,7 @@ class ProgressTracker:
             task_title: Task title
         """
         self.log(f"Completed task {task_number}: {task_title}")
+        await self._notify("task_completed", {"task": f"{task_number}: {task_title}"})
 
     def validation_started(self, commands: List[str]) -> None:
         """Log validation start.

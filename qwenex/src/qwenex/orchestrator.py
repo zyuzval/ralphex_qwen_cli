@@ -46,6 +46,7 @@ class Orchestrator:
         max_iterations: int = 3,
         timeout_min: int = 10,
         auto_mode: bool = False,
+        enable_web: bool = False,
     ):
         """Initialize orchestrator.
 
@@ -56,11 +57,13 @@ class Orchestrator:
             max_iterations: Max retry iterations per task
             timeout_min: Timeout per task in minutes
             auto_mode: Auto-approve review markers
+            enable_web: Enable web dashboard integration
         """
         self.plan = plan
         self.max_iterations = max_iterations
         self.timeout_min = timeout_min
         self.auto_mode = auto_mode
+        self.enable_web = enable_web
 
         self.executor = QwenExecutor(
             provider=provider,
@@ -69,6 +72,14 @@ class Orchestrator:
         )
         self.validator = Validator()
         self.git = GitWrapper()
+        
+        # Setup web broadcast if enabled
+        if enable_web:
+            from .web.broadcast import BroadcastService
+            self.broadcast = BroadcastService.get_instance()
+        else:
+            self.broadcast = None
+        
         self.progress = ProgressTracker(plan_file=plan.file_path)
         self.reviewer = HybridExecutor()
         self.aggregator = ReviewAggregator()
@@ -219,6 +230,16 @@ class Orchestrator:
         Returns:
             OrchestratorResult with overall status
         """
+        # Setup web callback if enabled
+        if self.enable_web and self.broadcast:
+            async def web_callback(event_type: str, data: dict):
+                if event_type == "task_started":
+                    await self.broadcast.send_progress(0, data.get("task", ""))
+                elif event_type == "log":
+                    await self.broadcast.send_log(data.get("message", ""), data.get("level", "info"))
+            
+            self.progress.callback = web_callback
+        
         self.progress.log(f"Starting plan: {self.plan.title}")
         self.progress.save()
 
