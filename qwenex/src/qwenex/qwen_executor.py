@@ -1,8 +1,11 @@
-"""Execute tasks using Qwen CLI."""
+"""Execute tasks using LLM providers."""
 
 import asyncio
 import json
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
+
+from .models.base import LLMProvider, ProviderConfig
+from .models.factory import ProviderFactory
 
 
 class TaskTimeoutError(Exception):
@@ -23,73 +26,75 @@ def parse_event(line: str) -> Dict[str, Any]:
 
 
 class QwenExecutor:
-    """Execute tasks using Qwen CLI subprocess."""
+    """Execute tasks using LLM providers."""
 
-    def __init__(self, timeout_min: int = 10):
+    def __init__(
+        self,
+        provider: Optional[LLMProvider] = None,
+        provider_config: Optional[ProviderConfig] = None,
+        timeout_min: int = 10
+    ):
         """Initialize executor.
 
         Args:
+            provider: LLM provider instance (optional)
+            provider_config: Provider configuration (creates provider)
             timeout_min: Timeout in minutes for each task
         """
         self.timeout_min = timeout_min
+        
+        if provider is not None:
+            self.provider = provider
+        elif provider_config is not None:
+            self.provider = ProviderFactory.create(
+                provider_config.name,
+                provider_config
+            )
+        else:
+            # Default to Qwen Cloud from environment
+            self.provider, _ = ProviderFactory.create_from_env()
 
     async def run_task(
         self,
         prompt: str,
+        system_prompt: Optional[str] = None,
+        stream: bool = True
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        """Run a task using Qwen CLI.
+        """Run a task using the LLM provider.
 
         Args:
             prompt: Task prompt to execute
+            system_prompt: Optional system prompt
+            stream: Whether to stream response
 
         Yields:
-            Stream-json events from Qwen CLI
+            Events from the provider
 
         Raises:
             TaskTimeoutError: If task exceeds timeout
         """
-        process = None
         try:
-            process = await asyncio.create_subprocess_exec(
-                "qwen",
-                "-y",  # YOLO mode - auto-approve all actions
-                "-o", "stream-json",
-                "-p", prompt,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+            if stream:
+                async for chunk in self.provider.stream(prompt, system_prompt):
+                    yield {
+                        "type": "chunk",
+                        "content": chunk
+                    }
+            else:
+                response = await asyncio.wait_for(
+                    self.provider.complete(prompt, system_prompt),
+                    timeout=self.timeout_min * 60
+                )
+                yield {
+                    "type": "complete",
+                    "content": response
+                }
+                
+        except asyncio.TimeoutError:
+            raise TaskTimeoutError(
+                f"Task exceeded {self.timeout_min} minutes timeout"
             )
-
-            # Read stdout line by line
-            while True:
-                try:
-                    line = await asyncio.wait_for(
-                        process.stdout.readline(),
-                        timeout=self.timeout_min * 60
-                    )
-                    if not line:
-                        break
-                    try:
-                        event = parse_event(line.decode('utf-8'))
-                        yield event
-                    except (json.JSONDecodeError, UnicodeDecodeError):
-                        # Skip malformed lines
-                        continue
-                except asyncio.TimeoutError:
-                    # Timeout on readline - task took too long
-                    if process:
-                        process.kill()
-                    raise TaskTimeoutError(
-                        f"Task exceeded {self.timeout_min} minutes timeout"
-                    )
-
-            # Wait for process to complete
-            await process.wait()
-
-        except TaskTimeoutError:
-            raise
         except Exception as e:
-            if process:
-                process.kill()
             raise TaskTimeoutError(
                 f"Task exceeded {self.timeout_min} minutes timeout: {e}"
             )
